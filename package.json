@@ -1,0 +1,44 @@
+{
+  "name": "vega-cinema",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "private": true,
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "build": "expo export --platform web",
+    "cap:build": "npm run build && npx cap sync",
+    "cap:open": "npx cap open android"
+  },
+
+  "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
+    "@expo/vector-icons": "^14.0.0",
+    "@react-native-async-storage/async-storage": "1.23.1",
+    "@supabase/supabase-js": "^2.48.1",
+    "expo": "~51.0.0",
+    "expo-constants": "~16.0.0",
+    "expo-linking": "~6.3.0",
+    "expo-router": "~3.5.0",
+    "expo-status-bar": "~1.12.0",
+    "lucide-react": "^1.30.0",
+    "lucide-react-native": "^0.475.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-native": "0.74.5",
+    "react-native-safe-area-context": "4.10.5",
+    "react-native-screens": "~3.31.1",
+    "react-native-svg": "15.2.0",
+    "react-native-web": "~0.19.10",
+    "react-native-webview": "13.8.6"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0",
+    "@types/react": "~18.2.45",
+    "typescript": "^5.1.3"
+  }
+}

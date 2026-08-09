@@ -1,0 +1,19 @@
+{
+  "appId": "com.vegacinema.app",
+  "appName": "Vega Cinema",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "http",
+    "allowNavigation": [
+      "localhost",
+      "*.videasy.net",
+      "*.embedmaster.net",
+      "*.filmu.in",
+      "*.anilist.co"
+    ]
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true
+  }
+}
