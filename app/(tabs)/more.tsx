@@ -43,7 +43,7 @@ export default function MoreScreen() {
   };
 
   const menuItems: MenuItem[] = [
-    { title: 'Profile Settings', iconName: 'person-outline', action: () => Alert.alert('Profile Settings', user ? `Logged in as: ${user.email}` : 'Please sign in from the top header button.') },
+    { title: 'Profile Settings', iconName: 'person-outline', action: () => router.push('/settings/profile') },
     { title: 'Watch History', iconName: 'time-outline', action: () => router.push('/watchlist') },
     { title: 'Downloads', iconName: 'download-outline', action: () => Alert.alert('Offline Downloads', 'Offline downloads are enabled on Android app build.') },
     { title: 'Streaming Services', iconName: 'tv-outline', action: () => Alert.alert('Streaming Services', 'HD, English, and Indian server mirrors are active.') },
