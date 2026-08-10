@@ -57,7 +57,10 @@ public class MainActivity extends BridgeActivity {
                 settings.setJavaScriptCanOpenWindowsAutomatically(false);
                 settings.setSupportMultipleWindows(true);
 
-                // WebViewClient with Ad-blocking
+                // Store reference to Capacitor's BridgeWebViewClient so local bundled assets (https://localhost) are served cleanly
+                final WebViewClient defaultClient = webView.getWebViewClient();
+
+                // WebViewClient with Ad-blocking delegating to Capacitor's BridgeWebViewClient
                 webView.setWebViewClient(new WebViewClient() {
                     @Override
                     public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
@@ -71,6 +74,10 @@ public class MainActivity extends BridgeActivity {
                                     return new WebResourceResponse("text/plain", "UTF-8", new ByteArrayInputStream("".getBytes()));
                                 }
                             }
+                        }
+
+                        if (defaultClient != null) {
+                            return defaultClient.shouldInterceptRequest(view, request);
                         }
 
                         return super.shouldInterceptRequest(view, request);
