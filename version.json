@@ -1,7 +1,7 @@
 {
-  "version": "1.0.1",
+  "version": "1.0.2",
   "size": "2.1 MB",
-  "changelog": "Added smooth video playback and UI fixes.",
+  "changelog": "Added smooth video playback, direct OTA updater engine, and UI fixes.",
   "zipUrl": "https://github.com/vanshu6969/AuraFlex-/releases/download/auraflex/dist.zip",
   "downloadUrl": "https://github.com/vanshu6969/AuraFlex-/releases/download/auraflex/app-release.apk"
 }
