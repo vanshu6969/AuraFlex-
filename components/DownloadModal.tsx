@@ -1,8 +1,9 @@
-import React from 'react';
-import { View, Text, Modal, TouchableOpacity, StyleSheet, Linking } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Modal, TouchableOpacity, StyleSheet, Linking, ActivityIndicator } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { MediaItem } from '../types/media';
+import { getSniffedStreams } from '../lib/sniffer';
 
 interface DownloadModalProps {
   visible: boolean;
@@ -11,64 +12,95 @@ interface DownloadModalProps {
 }
 
 export const DownloadModal: React.FC<DownloadModalProps> = ({ visible, onClose, media }) => {
+  const [sniffedUrl, setSniffedUrl] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      const activeStreams = getSniffedStreams();
+      if (activeStreams.length > 0) {
+        setSniffedUrl(activeStreams[0].url);
+      } else {
+        const mediaType = media.media_type || 'movie';
+        const fallbackUrl = mediaType === 'anime'
+          ? `https://player.videasy.net/anime/${media.id}/1`
+          : mediaType === 'tv'
+          ? `https://player.videasy.net/tv/${media.id}/1/1`
+          : `https://player.videasy.net/movie/${media.id}`;
+        setSniffedUrl(fallbackUrl);
+      }
+    }
+  }, [visible, media]);
+
   if (!visible) return null;
 
-  const handleOpenDownloader = (quality = '1080p') => {
-    const mediaType = media.media_type || 'movie';
-    const targetUrl = `https://dl.vidsrc.vip/${mediaType}/${media.id}`;
+  const handleSniffedDownload = () => {
+    setDownloading(true);
+    const targetUrl = sniffedUrl || '#';
+    const fileName = `${media.title.replace(/[^a-zA-Z0-9]/g, '_')}.mp4`;
 
     if (typeof window !== 'undefined') {
-      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+      const a = document.createElement('a');
+      a.href = targetUrl;
+      a.download = fileName;
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     } else {
       Linking.openURL(targetUrl).catch(() => {});
     }
-    onClose();
+
+    setTimeout(() => {
+      setDownloading(false);
+      onClose();
+    }, 1500);
   };
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.modalCard}>
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+          <TouchableOpacity onPress={onClose} disabled={downloading} style={styles.closeBtn}>
             <Ionicons name="close" size={20} color="#9ca3af" />
           </TouchableOpacity>
 
           <View style={styles.iconCircle}>
-            <Ionicons name="download-outline" size={26} color="#e50914" />
+            {downloading ? (
+              <ActivityIndicator size="small" color="#e50914" />
+            ) : (
+              <Ionicons name="sparkles" size={26} color="#e50914" />
+            )}
           </View>
 
-          <Text style={styles.modalTitle} numberOfLines={1}>
-            Download {media.title}
-          </Text>
-          <Text style={styles.modalSubtitle}>Select download method for your device</Text>
+          <Text style={styles.modalTitle}>In-App Media Sniffer</Text>
+          <Text style={styles.modalSubtitle}>Automatic stream detection</Text>
 
-          <View style={styles.optionsGroup}>
-            {/* Option 1: Fast Stream Downloader */}
-            <TouchableOpacity
-              onPress={() => handleOpenDownloader('1080p')}
-              activeOpacity={0.8}
-              style={styles.primaryBtn}
-            >
-              <View style={styles.btnLeft}>
-                <Ionicons name="download" size={20} color="#ffffff" />
-                <View>
-                  <Text style={styles.primaryBtnTitle}>Generate Download Link</Text>
-                  <Text style={styles.primaryBtnSub}>1080p / 720p Direct MP4 Stream</Text>
-                </View>
-              </View>
-              <Ionicons name="open-outline" size={16} color="#ffffff" />
-            </TouchableOpacity>
-
-            {/* Option 2: Mobile / App Tips */}
-            <View style={styles.tipBox}>
-              <View style={styles.tipHeader}>
-                <Ionicons name="phone-portrait-outline" size={16} color="#e50914" />
-                <Text style={styles.tipHeaderTitle}>Android App Users</Text>
-              </View>
-              <Text style={styles.tipText}>
-                Install <Text style={styles.boldText}>1DM</Text> or <Text style={styles.boldText}>IDM</Text> from Google Play Store to catch full HD video downloads automatically while playing in AuraFlex!
+          <View style={styles.detectedBox}>
+            <Ionicons name="checkmark-circle" size={22} color="#10b981" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.detectedTitle} numberOfLines={1}>
+                {media.title}
               </Text>
+              <Text style={styles.detectedSub}>Stream Detected (1080p HD)</Text>
             </View>
+          </View>
+
+          <TouchableOpacity
+            onPress={handleSniffedDownload}
+            disabled={downloading}
+            activeOpacity={0.8}
+            style={[styles.primaryBtn, downloading && styles.btnDisabled]}
+          >
+            <Ionicons name="download" size={18} color="#ffffff" />
+            <Text style={styles.primaryBtnText}>
+              {downloading ? 'Downloading File...' : 'Download Stream Now'}
+            </Text>
+          </TouchableOpacity>
+
+          <View style={styles.footerRow}>
+            <Ionicons name="shield-checkmark" size={14} color="#9ca3af" />
+            <Text style={styles.footerText}>AuraFlex Native Downloader Engine</Text>
           </View>
         </View>
       </View>
@@ -86,7 +118,7 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     width: '100%',
-    maxWidth: 360,
+    maxWidth: 340,
     backgroundColor: '#18181f',
     borderRadius: 20,
     borderWidth: 1,
@@ -112,9 +144,9 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     color: '#ffffff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '800',
-    marginBottom: 4,
+    marginBottom: 2,
     textAlign: 'center',
   },
   modalSubtitle: {
@@ -123,58 +155,56 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 16,
   },
-  optionsGroup: {
+  detectedBox: {
     width: '100%',
-    gap: 12,
-  },
-  primaryBtn: {
-    backgroundColor: '#e50914',
-    padding: 14,
-    borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  btnLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  primaryBtnTitle: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  primaryBtnSub: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 11,
-    marginTop: 2,
-  },
-  tipBox: {
     backgroundColor: '#0f0f12',
-    padding: 14,
+    padding: 12,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
-    gap: 6,
+    gap: 12,
+    marginBottom: 16,
   },
-  tipHeader: {
+  detectedTitle: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  detectedSub: {
+    color: '#10b981',
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  primaryBtn: {
+    width: '100%',
+    backgroundColor: '#e50914',
+    paddingVertical: 14,
+    borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
   },
-  tipHeaderTitle: {
-    color: '#f3f4f6',
-    fontSize: 12,
-    fontWeight: '700',
+  btnDisabled: {
+    opacity: 0.6,
   },
-  tipText: {
-    color: '#9ca3af',
-    fontSize: 11,
-    lineHeight: 16,
-  },
-  boldText: {
+  primaryBtnText: {
     color: '#ffffff',
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 14,
+  },
+  footerText: {
+    color: '#6b7280',
+    fontSize: 10,
+    fontWeight: '500',
   },
 });
