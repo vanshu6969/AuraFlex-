@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Image } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { AuthModal } from '../components/AuthModal';
@@ -15,9 +15,7 @@ export default function RootLayout() {
       <SafeAreaView style={styles.topSafeArea}>
         <View style={styles.topHeader}>
           <View style={styles.brandRow}>
-            <View style={styles.logoBox}>
-              <Ionicons name="play" size={14} color="#ffffff" />
-            </View>
+            <Image source={require('../assets/icon.png')} style={styles.brandIconImage} />
             <Text style={styles.brandTitle}>
               AURA <Text style={styles.brandAccent}>FLEX</Text>
             </Text>
@@ -60,13 +58,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  logoBox: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
-    backgroundColor: '#e50914',
-    alignItems: 'center',
-    justifyContent: 'center',
+  brandIconImage: {
+    width: 28,
+    height: 28,
+    borderRadius: 7,
   },
   brandTitle: {
     color: '#ffffff',
