@@ -4,7 +4,6 @@ import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from 'rea
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MediaItem } from '../types/media';
-
 import { storageService } from '../lib/storage';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -16,16 +15,28 @@ interface MobileHeroBannerProps {
 export const MobileHeroBanner: React.FC<MobileHeroBannerProps> = ({ items }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
 
   const currentItem = items[currentIndex] || items[0];
 
+  const handleNext = () => {
+    if (!items || items.length === 0) return;
+    setCurrentIndex((prev) => (prev + 1) % items.length);
+  };
+
+  const handlePrev = () => {
+    if (!items || items.length === 0) return;
+    setCurrentIndex((prev) => (prev - 1 + items.length) % items.length);
+  };
+
+  // Auto-play timer every 5 seconds
   useEffect(() => {
     if (items.length <= 1) return;
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % items.length);
-    }, 6000);
+      handleNext();
+    }, 5000);
     return () => clearInterval(interval);
-  }, [items.length]);
+  }, [items.length, currentIndex]);
 
   useEffect(() => {
     if (currentItem) {
@@ -44,12 +55,58 @@ export const MobileHeroBanner: React.FC<MobileHeroBannerProps> = ({ items }) => 
     }
   };
 
+  // Touch Swipe Gesture Handlers
+  const handleTouchStart = (e: any) => {
+    if (e.nativeEvent && e.nativeEvent.pageX) {
+      setTouchStart(e.nativeEvent.pageX);
+    }
+  };
+
+  const handleTouchEnd = (e: any) => {
+    if (touchStart === null) return;
+    const touchEnd = e.nativeEvent ? e.nativeEvent.pageX : null;
+    if (touchEnd !== null) {
+      const distance = touchStart - touchEnd;
+      if (distance > 40) {
+        handleNext();
+      } else if (distance < -40) {
+        handlePrev();
+      }
+    }
+    setTouchStart(null);
+  };
+
   if (!currentItem) return null;
 
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       <Image source={{ uri: currentItem.backdrop_path }} style={styles.backdrop} resizeMode="cover" />
       <View style={styles.gradientOverlay} />
+
+      {/* Side Arrow Navigation */}
+      {items.length > 1 && (
+        <>
+          <TouchableOpacity
+            onPress={handlePrev}
+            activeOpacity={0.7}
+            style={[styles.arrowBtn, styles.arrowLeft]}
+          >
+            <Ionicons name="chevron-back" size={20} color="#ffffff" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleNext}
+            activeOpacity={0.7}
+            style={[styles.arrowBtn, styles.arrowRight]}
+          >
+            <Ionicons name="chevron-forward" size={20} color="#ffffff" />
+          </TouchableOpacity>
+        </>
+      )}
 
       <View style={styles.contentContainer}>
         <View style={styles.tagRow}>
@@ -96,12 +153,13 @@ export const MobileHeroBanner: React.FC<MobileHeroBannerProps> = ({ items }) => 
           </TouchableOpacity>
         </View>
 
-        {/* Carousel Indicators */}
+        {/* Clickable Carousel Indicators */}
         <View style={styles.indicatorRow}>
-          {items.slice(0, 5).map((_, idx) => (
+          {items.slice(0, 6).map((_, idx) => (
             <TouchableOpacity
               key={idx}
               onPress={() => setCurrentIndex(idx)}
+              activeOpacity={0.7}
               style={[styles.dot, idx === currentIndex && styles.activeDot]}
             />
           ))}
@@ -126,11 +184,31 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(15, 15, 18, 0.55)',
   },
+  arrowBtn: {
+    position: 'absolute',
+    top: '40%',
+    zIndex: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  arrowLeft: {
+    left: 12,
+  },
+  arrowRight: {
+    right: 12,
+  },
   contentContainer: {
     position: 'absolute',
     bottom: 16,
     left: 16,
     right: 16,
+    zIndex: 10,
   },
   tagRow: {
     flexDirection: 'row',
@@ -236,7 +314,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   activeDot: {
-    width: 20,
+    width: 24,
     backgroundColor: '#e50914',
   },
 });
