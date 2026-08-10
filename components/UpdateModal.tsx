@@ -3,9 +3,12 @@ import { View, Text, Modal, TouchableOpacity, StyleSheet, Linking } from 'react-
 
 import { Ionicons } from '@expo/vector-icons';
 
-// Set to 0.9.0 so it triggers against v1.0.1 in version.json
-const CURRENT_VERSION = '0.9.0';
-const VERSION_CHECK_URL = 'https://raw.githubusercontent.com/vanshu6969/VEGA-APP/main/version.json';
+// Installed version in app code (set to '1.0.0' for release builds)
+const CURRENT_VERSION = '1.0.0';
+
+// Clean public raw URL for version.json
+const PRIMARY_VERSION_URL = 'https://raw.githubusercontent.com/vanshu6969/AuraFlex-/main/version.json';
+const FALLBACK_VERSION_URL = 'https://raw.githubusercontent.com/vanshu6969/VEGA-APP/main/version.json';
 
 interface UpdateData {
   version: string;
@@ -22,25 +25,21 @@ export const UpdateModal = () => {
   useEffect(() => {
     const checkVersion = async () => {
       try {
-        const response = await fetch(VERSION_CHECK_URL, { cache: 'no-store' });
+        let response = await fetch(PRIMARY_VERSION_URL, { cache: 'no-store' });
         if (!response.ok) {
-          throw new Error('Raw fetch failed - using fallback test version');
+          response = await fetch(FALLBACK_VERSION_URL, { cache: 'no-store' });
         }
+        if (!response.ok) return;
 
         const data: UpdateData = await response.json();
+
+        // Trigger update modal if online version differs from installed code version
         if (data.version && data.version !== CURRENT_VERSION) {
           setUpdateData(data);
           setShowModal(true);
         }
       } catch (err) {
-        console.warn('GitHub URL check fallback triggered:', err);
-        setUpdateData({
-          version: '1.0.1',
-          size: '7.28 MB',
-          changelog: 'Added fast direct video downloads, media sniffer engine, and UI fixes.',
-          downloadUrl: 'https://github.com/vanshu6969/VEGA-APP',
-        });
-        setShowModal(true);
+        console.log('Update check skipped or device is offline:', err);
       }
     };
 
@@ -51,7 +50,15 @@ export const UpdateModal = () => {
 
   const handleUpdateClick = () => {
     if (typeof window !== 'undefined') {
-      window.open(updateData.downloadUrl, '_system');
+      const isNative = typeof (window as any).Capacitor?.isNativePlatform === 'function' 
+        ? (window as any).Capacitor.isNativePlatform() 
+        : false;
+        
+      if (isNative) {
+        window.open(updateData.downloadUrl, '_system');
+      } else {
+        window.open(updateData.downloadUrl, '_blank');
+      }
     } else {
       Linking.openURL(updateData.downloadUrl).catch(() => {});
     }
@@ -91,7 +98,7 @@ export const UpdateModal = () => {
                 activeOpacity={0.8}
                 style={styles.cancelBtn}
               >
-                <Text style={styles.cancelBtnText}>Later</Text>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
               </TouchableOpacity>
             )}
 
