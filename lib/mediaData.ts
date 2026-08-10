@@ -4,8 +4,8 @@ import { EmbedServer, MediaItem } from '../types/media';
 export const EMBED_SERVERS: EmbedServer[] = [
   {
     id: 'videasy',
-    name: 'Videasy',
-    badge: 'Server 1 (Primary HD)',
+    name: 'HD',
+    badge: 'HD Server',
     getUrl: (type, id, season = 1, episode = 1) =>
       type === 'tv'
         ? `https://player.videasy.net/tv/${id}/${season}/${episode}?sub=en`
@@ -13,8 +13,8 @@ export const EMBED_SERVERS: EmbedServer[] = [
   },
   {
     id: 'embedmaster',
-    name: 'Embed Master',
-    badge: 'Server 2 (Fast Mirror)',
+    name: 'English',
+    badge: 'English Server',
     getUrl: (type, id, season = 1, episode = 1) =>
       type === 'tv'
         ? `https://embedmaster.link/tv/${id}/${season}/${episode}?ds_lang=en`
@@ -22,8 +22,8 @@ export const EMBED_SERVERS: EmbedServer[] = [
   },
   {
     id: 'flmu',
-    name: 'embed.filmu',
-    badge: 'Server 3 (Multi-Audio)',
+    name: 'Indian',
+    badge: 'Indian Server',
     getUrl: (type, id, season = 1, episode = 1) =>
       type === 'tv'
         ? `https://embed.filmu.in/tv/${id}/${season}/${episode}`
