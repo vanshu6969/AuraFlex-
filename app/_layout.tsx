@@ -20,9 +20,6 @@ export default function RootLayout() {
               AURA <Text style={styles.brandAccent}>FLEX</Text>
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setAuthVisible(true)} style={styles.userBtn}>
-            <Ionicons name="person-circle-outline" size={24} color="#ffffff" />
-          </TouchableOpacity>
         </View>
       </SafeAreaView>
 
