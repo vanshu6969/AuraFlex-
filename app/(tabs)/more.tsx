@@ -30,14 +30,17 @@ export default function MoreScreen() {
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut();
       if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.clear();
+        window.localStorage.removeItem('auraflex_user_session');
+        window.localStorage.removeItem('auraflex_auth_token');
       }
+      await supabase.auth.signOut();
       setUser(null);
       Alert.alert('Signed Out', 'You have been signed out successfully.');
       router.replace('/');
-    } catch {
+    } catch (error) {
+      console.error('Sign out error:', error);
+      setUser(null);
       router.replace('/');
     }
   };
