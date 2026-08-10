@@ -50,6 +50,7 @@ export const MobileSearchFilter: React.FC<MobileSearchFilterProps> = ({
           { label: 'All', id: 'all' },
           { label: 'Movies', id: 'movie' },
           { label: 'TV Shows', id: 'tv' },
+          { label: 'Anime', id: 'anime' },
           { label: 'Animation', id: 'animation' },
         ].map((cat) => {
           const isActive = category === cat.id;

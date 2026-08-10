@@ -5,7 +5,7 @@ export interface MediaItem {
   overview: string;
   poster_path: string;
   backdrop_path: string;
-  media_type: 'movie' | 'tv';
+  media_type: 'movie' | 'tv' | 'anime';
   release_date?: string;
   first_air_date?: string;
   vote_average: number;
@@ -28,5 +28,5 @@ export interface EmbedServer {
   id: string;
   name: string;
   badge: string;
-  getUrl: (type: 'movie' | 'tv', id: number | string, season?: number, episode?: number) => string;
+  getUrl: (type: 'movie' | 'tv' | 'anime', id: number | string, season?: number, episode?: number) => string;
 }
