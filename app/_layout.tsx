@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Image } from 'react-native';
 
@@ -14,12 +14,12 @@ export default function RootLayout() {
       <StatusBar style="light" />
       <SafeAreaView style={styles.topSafeArea}>
         <View style={styles.topHeader}>
-          <View style={styles.brandRow}>
+          <TouchableOpacity onPress={() => router.replace('/')} activeOpacity={0.7} style={styles.brandRow}>
             <Image source={require('../assets/icon.png')} style={styles.brandIconImage} />
             <Text style={styles.brandTitle}>
               AURA <Text style={styles.brandAccent}>FLEX</Text>
             </Text>
-          </View>
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => setAuthVisible(true)} style={styles.userBtn}>
             <Ionicons name="person-circle-outline" size={24} color="#ffffff" />
           </TouchableOpacity>
