@@ -4,7 +4,6 @@ import { View, Text, FlatList, StyleSheet } from 'react-native';
 import { MobileMediaCard } from './MobileMediaCard';
 import { MediaItem } from '../types/media';
 
-
 interface MobileMediaGridProps {
   title: string;
   items: MediaItem[];
@@ -38,7 +37,7 @@ export const MobileMediaGrid: React.FC<MobileMediaGridProps> = ({
         <View style={styles.gridContainer}>
           {items.map((item) => (
             <View key={item.id} style={styles.gridCardWrapper}>
-              <MobileMediaCard item={item} width={160} />
+              <MobileMediaCard item={item} width="100%" />
             </View>
           ))}
         </View>
@@ -79,8 +78,12 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     paddingHorizontal: 12,
     justifyContent: 'space-between',
+    gap: 10,
   },
   gridCardWrapper: {
-    marginBottom: 12,
+    width: '48.5%',
+    maxWidth: 240,
+    flexGrow: 1,
+    marginBottom: 10,
   },
 });

@@ -1,32 +1,40 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MediaItem } from '../types/media';
 
-
 interface MobileMediaCardProps {
   item: MediaItem;
-  width?: number;
+  width?: number | string;
+  style?: StyleProp<ViewStyle>;
 }
 
-export const MobileMediaCard: React.FC<MobileMediaCardProps> = ({ item, width = 140 }) => {
+export const MobileMediaCard: React.FC<MobileMediaCardProps> = ({ item, width = 140, style }) => {
   const handlePress = () => {
     router.push(`/watch/${item.media_type}/${item.id}`);
   };
+
+  const isFixed = typeof width === 'number';
 
   return (
     <TouchableOpacity
       activeOpacity={0.8}
       onPress={handlePress}
-      style={[styles.card, { width }]}
+      style={[
+        styles.card,
+        isFixed ? { width, marginRight: 12 } : { width: '100%', marginRight: 0 },
+        style,
+      ]}
     >
       <View style={styles.imageContainer}>
         <Image source={{ uri: item.poster_path }} style={styles.poster} resizeMode="cover" />
         <View style={styles.ratingBadge}>
           <Ionicons name="star" size={10} color="#f59e0b" />
-          <Text style={styles.ratingText}>{item.vote_average.toFixed(1)}</Text>
+          <Text style={styles.ratingText}>
+            {typeof item.vote_average === 'number' ? item.vote_average.toFixed(1) : 'N/A'}
+          </Text>
         </View>
       </View>
       <View style={styles.infoContainer}>
@@ -34,7 +42,7 @@ export const MobileMediaCard: React.FC<MobileMediaCardProps> = ({ item, width = 
           {item.title}
         </Text>
         <Text style={styles.subtitle}>
-          {item.media_type.toUpperCase()} • {item.genres[0] || 'HD'}
+          {(item.media_type || 'movie').toUpperCase()} • {item.genres?.[0] || 'HD'}
         </Text>
       </View>
     </TouchableOpacity>
@@ -43,7 +51,6 @@ export const MobileMediaCard: React.FC<MobileMediaCardProps> = ({ item, width = 
 
 const styles = StyleSheet.create({
   card: {
-    marginRight: 12,
     backgroundColor: '#18181f',
     borderRadius: 12,
     overflow: 'hidden',
