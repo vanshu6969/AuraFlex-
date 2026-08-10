@@ -1,15 +1,9 @@
 {
-  "appId": "com.vegacinema.app",
+  "appId": "com.auraflex.app",
   "appName": "AuraFlex",
   "webDir": "dist",
   "server": {
-    "androidScheme": "https",
-    "allowNavigation": [
-      "*.videasy.net",
-      "*.embedmaster.net",
-      "*.filmu.in",
-      "*.anilist.co"
-    ]
+    "androidScheme": "https"
   },
   "android": {
     "allowMixedContent": true,
