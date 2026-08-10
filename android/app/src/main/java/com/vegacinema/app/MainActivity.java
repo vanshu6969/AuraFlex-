@@ -10,10 +10,19 @@ import android.webkit.WebView;
 import android.webkit.WebChromeClient;
 import android.webkit.WebViewClient;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.os.Message;
 import com.getcapacitor.BridgeActivity;
+import java.io.ByteArrayInputStream;
 
 public class MainActivity extends BridgeActivity {
+
+    // Common ad and popunder network domains to block
+    private static final String[] AD_HOSTS = {
+        "doubleclick.net", "adservice.google.com", "popads.net", "popcash.net",
+        "adsterra.com", "exoclick.com", "juicyads.com", "propellerads.com",
+        "monetag.com", "onclickads.net", "alwingulla.com", "vignette.wikia.nocookie.net"
+    };
 
     private View customView;
     private WebChromeClient.CustomViewCallback customViewCallback;
@@ -46,6 +55,26 @@ public class MainActivity extends BridgeActivity {
 
             settings.setJavaScriptCanOpenWindowsAutomatically(false);
             settings.setSupportMultipleWindows(true);
+
+            // WebViewClient with Ad-blocking
+            webView.setWebViewClient(new WebViewClient() {
+                @Override
+                public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                    if (request != null && request.getUrl() != null) {
+                        String url = request.getUrl().toString().toLowerCase();
+
+                        // Check if request matches an ad host domain
+                        for (String adHost : AD_HOSTS) {
+                            if (url.contains(adHost)) {
+                                // Return empty 200 response to neutralize the ad silently
+                                return new WebResourceResponse("text/plain", "UTF-8", new ByteArrayInputStream("".getBytes()));
+                            }
+                        }
+                    }
+
+                    return super.shouldInterceptRequest(view, request);
+                }
+            });
 
             // WebChromeClient with FULLSCREEN SUPPORT
             webView.setWebChromeClient(new WebChromeClient() {

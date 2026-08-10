@@ -81,7 +81,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
               <Ionicons name="sparkles" size={22} color="#e50914" />
             </View>
             <Text style={styles.title}>
-              {user ? 'Account Settings' : isSignUp ? 'Create Vega Account' : 'Welcome Back'}
+              {user ? 'Account Settings' : isSignUp ? 'Create AuraFlex Account' : 'Welcome Back'}
             </Text>
             <Text style={styles.subtitle}>
               {user

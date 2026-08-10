@@ -19,7 +19,7 @@ export default function RootLayout() {
               <Ionicons name="play" size={14} color="#ffffff" />
             </View>
             <Text style={styles.brandTitle}>
-              VEGA <Text style={styles.brandAccent}>CINEMA</Text>
+              AURA <Text style={styles.brandAccent}>FLEX</Text>
             </Text>
           </View>
           <TouchableOpacity onPress={() => setAuthVisible(true)} style={styles.userBtn}>

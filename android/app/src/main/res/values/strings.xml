@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Vega Cinema</string>
-    <string name="title_activity_main">Vega Cinema</string>
+    <string name="app_name">AuraFlex</string>
+    <string name="title_activity_main">AuraFlex</string>
     <string name="package_name">com.vegacinema.app</string>
     <string name="custom_url_scheme">com.vegacinema.app</string>
 </resources>

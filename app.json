@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Vega Cinema",
-    "slug": "vega-cinema",
+    "name": "AuraFlex",
+    "slug": "auraflex",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "vega-cinema",
+    "scheme": "auraflex",
     "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/splash.png",

@@ -1,6 +1,6 @@
 {
   "appId": "com.vegacinema.app",
-  "appName": "Vega Cinema",
+  "appName": "AuraFlex",
   "webDir": "dist",
   "server": {
     "androidScheme": "http",
