@@ -1,24 +1,54 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { safeStorage } from '../../lib/storageAdapter';
 
-const AVATARS = [
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
+const AVATAR_CATEGORIES = [
+  {
+    name: 'Superhero & Action',
+    avatars: [
+      'https://api.dicebear.com/7.x/bottts/png?seed=Spider',
+      'https://api.dicebear.com/7.x/bottts/png?seed=Batman',
+      'https://api.dicebear.com/7.x/bottts/png?seed=Ironman',
+      'https://api.dicebear.com/7.x/bottts/png?seed=Thor',
+    ],
+  },
+  {
+    name: 'Anime & Cartoons',
+    avatars: [
+      'https://api.dicebear.com/7.x/adventurer/png?seed=Goku',
+      'https://api.dicebear.com/7.x/adventurer/png?seed=Naruto',
+      'https://api.dicebear.com/7.x/adventurer/png?seed=Luffy',
+      'https://api.dicebear.com/7.x/adventurer/png?seed=Eren',
+    ],
+  },
+  {
+    name: 'Sci-Fi & Villains',
+    avatars: [
+      'https://api.dicebear.com/7.x/bottts/png?seed=Vader',
+      'https://api.dicebear.com/7.x/bottts/png?seed=Cyber',
+      'https://api.dicebear.com/7.x/bottts/png?seed=Matrix',
+      'https://api.dicebear.com/7.x/bottts/png?seed=Ghost',
+    ],
+  },
+  {
+    name: 'Classic Movie Icons',
+    avatars: [
+      'https://api.dicebear.com/7.x/avataaars/png?seed=Mafia',
+      'https://api.dicebear.com/7.x/avataaars/png?seed=Detective',
+      'https://api.dicebear.com/7.x/avataaars/png?seed=Ninja',
+      'https://api.dicebear.com/7.x/avataaars/png?seed=Agent',
+    ],
+  },
 ];
 
 export default function AccountPage() {
   const [user, setUser] = useState<any>(null);
   const [name, setName] = useState('AuraFlex User');
-  const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
+  const [selectedAvatar, setSelectedAvatar] = useState(AVATAR_CATEGORIES[0].avatars[0]);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -90,28 +120,49 @@ export default function AccountPage() {
         <Text style={styles.headerTitle}>Account Settings</Text>
       </View>
 
-      {/* Profile & Avatar Customization */}
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>AVATAR & PROFILE</Text>
-        <View style={styles.avatarSection}>
-          <Image source={{ uri: selectedAvatar }} style={styles.mainAvatar} />
-          <View style={styles.avatarGrid}>
-            {AVATARS.map((url, idx) => {
-              const isSelected = selectedAvatar === url;
-              return (
-                <TouchableOpacity
-                  key={idx}
-                  onPress={() => setSelectedAvatar(url)}
-                  activeOpacity={0.8}
-                  style={[styles.avatarOption, isSelected && styles.avatarSelected]}
-                >
-                  <Image source={{ uri: url }} style={styles.avatarOptionImg} />
-                </TouchableOpacity>
-              );
-            })}
+      {/* Selected Avatar Preview Header */}
+      <View style={styles.previewCard}>
+        <View style={styles.avatarPreviewWrapper}>
+          <Image source={{ uri: selectedAvatar }} style={styles.mainAvatar} resizeMode="contain" />
+          <View style={styles.sparkleBadge}>
+            <Ionicons name="sparkles" size={12} color="#ffffff" />
           </View>
         </View>
+        <Text style={styles.previewName}>{name}</Text>
+        <Text style={styles.previewSubtitle}>Choose a character avatar below</Text>
+      </View>
 
+      {/* Categorized Netflix-Style Avatar Picker */}
+      <View style={styles.categoriesContainer}>
+        {AVATAR_CATEGORIES.map((cat, catIdx) => (
+          <View key={catIdx} style={styles.categoryCard}>
+            <Text style={styles.categoryTitle}>{cat.name}</Text>
+            <View style={styles.avatarGrid}>
+              {cat.avatars.map((url, idx) => {
+                const isSelected = selectedAvatar === url;
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    onPress={() => setSelectedAvatar(url)}
+                    activeOpacity={0.8}
+                    style={[styles.avatarOption, isSelected && styles.avatarSelected]}
+                  >
+                    <Image source={{ uri: url }} style={styles.avatarOptionImg} resizeMode="contain" />
+                    {isSelected && (
+                      <View style={styles.checkOverlay}>
+                        <Ionicons name="checkmark" size={16} color="#ffffff" />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        ))}
+      </View>
+
+      {/* Display Name & Status Section */}
+      <View style={styles.sectionCard}>
         <View style={styles.formGroup}>
           <Text style={styles.inputLabel}>DISPLAY NAME</Text>
           <TextInput
@@ -123,23 +174,20 @@ export default function AccountPage() {
           />
         </View>
 
+        <View style={styles.statusBox}>
+          <Ionicons name="shield-checkmark" size={16} color="#34d399" />
+          <Text style={styles.statusText}>{user ? `Cloud Profile: ${user.email}` : 'Guest Profile Active'}</Text>
+        </View>
+
         <TouchableOpacity onPress={handleSave} activeOpacity={0.8} style={styles.saveBtn}>
-          <Text style={styles.saveBtnText}>{saved ? 'Saved Successfully!' : 'Save Profile Changes'}</Text>
+          <Text style={styles.saveBtnText}>{saved ? 'Saved Successfully!' : 'Save Account Settings'}</Text>
         </TouchableOpacity>
       </View>
 
       {/* Cloud Account Sync / Auth Section */}
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>CLOUD ACCOUNT SYNC</Text>
-        {user ? (
-          <View style={styles.userBox}>
-            <Ionicons name="cloud-done-outline" size={24} color="#10b981" />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.userEmail}>{user.email}</Text>
-              <Text style={styles.userSub}>Watchlist and history sync active across all devices.</Text>
-            </View>
-          </View>
-        ) : (
+      {!user && (
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>CLOUD ACCOUNT SYNC</Text>
           <View style={styles.authForm}>
             <Text style={styles.authSub}>Sign in or create an account to sync watchlists across all devices.</Text>
             {authError ? <Text style={styles.errorText}>{authError}</Text> : null}
@@ -177,14 +225,14 @@ export default function AccountPage() {
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => setIsSignUp(!isSignUp)} style={{ marginTop: 8, alignItems: 'center' }}>
+            <TouchableOpacity onPress={() => setIsSignUp(!isSignUp)} style={{ marginTop: 6, alignItems: 'center' }}>
               <Text style={styles.toggleText}>
                 {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
               </Text>
             </TouchableOpacity>
           </View>
-        )}
-      </View>
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -203,7 +251,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   backBtn: {
     width: 36,
@@ -220,6 +268,94 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '800',
   },
+  previewCard: {
+    backgroundColor: '#18181f',
+    padding: 20,
+    borderRadius: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    marginBottom: 20,
+  },
+  avatarPreviewWrapper: {
+    position: 'relative',
+  },
+  mainAvatar: {
+    width: 90,
+    height: 90,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#e50914',
+    backgroundColor: '#0f0f12',
+    padding: 4,
+  },
+  sparkleBadge: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    backgroundColor: '#e50914',
+    padding: 5,
+    borderRadius: 12,
+  },
+  previewName: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '800',
+    marginTop: 10,
+  },
+  previewSubtitle: {
+    color: '#9ca3af',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  categoriesContainer: {
+    gap: 14,
+    marginBottom: 20,
+  },
+  categoryCard: {
+    backgroundColor: 'rgba(24, 24, 31, 0.6)',
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  categoryTitle: {
+    color: '#e50914',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    marginBottom: 10,
+    textTransform: 'uppercase',
+  },
+  avatarGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  avatarOption: {
+    flex: 1,
+    aspectRatio: 1,
+    borderRadius: 14,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#0f0f12',
+    padding: 4,
+    position: 'relative',
+  },
+  avatarSelected: {
+    borderColor: '#e50914',
+  },
+  avatarOptionImg: {
+    width: '100%',
+    height: '100%',
+  },
+  checkOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(229, 9, 20, 0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   sectionCard: {
     backgroundColor: '#18181f',
     padding: 16,
@@ -234,39 +370,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.5,
-  },
-  avatarSection: {
-    alignItems: 'center',
-    marginVertical: 8,
-    gap: 12,
-  },
-  mainAvatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 2,
-    borderColor: '#e50914',
-  },
-  avatarGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  avatarOption: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  avatarSelected: {
-    borderColor: '#e50914',
-  },
-  avatarOptionImg: {
-    width: '100%',
-    height: '100%',
   },
   formGroup: {
     gap: 4,
@@ -287,6 +390,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
+  statusBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(52, 211, 153, 0.1)',
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(52, 211, 153, 0.2)',
+    gap: 8,
+  },
+  statusText: {
+    color: '#34d399',
+    fontSize: 11,
+    fontWeight: '700',
+  },
   saveBtn: {
     backgroundColor: '#e50914',
     paddingVertical: 12,
@@ -298,24 +416,6 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 13,
     fontWeight: '800',
-  },
-  userBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0f0f12',
-    padding: 12,
-    borderRadius: 10,
-    gap: 10,
-  },
-  userEmail: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  userSub: {
-    color: '#9ca3af',
-    fontSize: 11,
-    marginTop: 2,
   },
   authForm: {
     gap: 10,
