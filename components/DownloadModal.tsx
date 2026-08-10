@@ -13,14 +13,24 @@ interface DownloadModalProps {
 export const DownloadModal: React.FC<DownloadModalProps> = ({ visible, onClose, media }) => {
   if (!visible) return null;
 
-  const handleDownloadWithSite = (quality = '1080p') => {
-    const searchQuery = encodeURIComponent(`${media.title} ${quality}`);
-    const targetUrl = `https://videodownloader.site/?url=${searchQuery}`;
+  const startNativeDownload = (quality: string) => {
+    const mediaType = media.media_type || 'movie';
+    const downloadUrl = mediaType === 'anime'
+      ? `https://player.videasy.net/anime/${media.id}/1`
+      : mediaType === 'tv'
+      ? `https://player.videasy.net/tv/${media.id}/1/1`
+      : `https://player.videasy.net/movie/${media.id}`;
 
     if (typeof window !== 'undefined') {
-      window.open(targetUrl, '_blank');
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     } else {
-      Linking.openURL(targetUrl).catch(() => {});
+      Linking.openURL(downloadUrl).catch(() => {});
     }
     onClose();
   };
@@ -34,54 +44,43 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ visible, onClose, 
           </TouchableOpacity>
 
           <View style={styles.iconCircle}>
-            <Ionicons name="download-outline" size={28} color="#e50914" />
+            <Ionicons name="download-outline" size={26} color="#e50914" />
           </View>
 
           <Text style={styles.modalTitle} numberOfLines={1}>
             Download {media.title}
           </Text>
-          <Text style={styles.modalSubtitle}>
-            Select resolution stream to open in VideoDownloader.site
-          </Text>
+          <Text style={styles.modalSubtitle}>Select stream quality to save to your device</Text>
 
           <View style={styles.optionsGroup}>
             <TouchableOpacity
-              onPress={() => handleDownloadWithSite('1080p Full HD')}
+              onPress={() => startNativeDownload('1080p')}
               activeOpacity={0.8}
               style={styles.optionItem}
             >
               <View style={styles.optionLeft}>
-                <Ionicons name="sparkles-outline" size={18} color="#e50914" />
+                <Ionicons name="sparkles" size={18} color="#e50914" />
                 <View>
                   <Text style={styles.optionTitle}>1080p Ultra HD</Text>
-                  <Text style={styles.optionSub}>Highest quality • MP4 stream</Text>
+                  <Text style={styles.optionSub}>Highest quality • Fast Server</Text>
                 </View>
               </View>
-              <Ionicons name="open-outline" size={16} color="#6b7280" />
+              <Ionicons name="download-outline" size={18} color="#6b7280" />
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => handleDownloadWithSite('720p HD')}
+              onPress={() => startNativeDownload('720p')}
               activeOpacity={0.8}
               style={styles.optionItem}
             >
               <View style={styles.optionLeft}>
                 <Ionicons name="film-outline" size={18} color="#d1d5db" />
                 <View>
-                  <Text style={styles.optionTitle}>720p HD</Text>
+                  <Text style={styles.optionTitle}>720p Standard HD</Text>
                   <Text style={styles.optionSub}>Fast download • Mobile optimized</Text>
                 </View>
               </View>
-              <Ionicons name="open-outline" size={16} color="#6b7280" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => handleDownloadWithSite(media.title)}
-              activeOpacity={0.8}
-              style={styles.primaryBtn}
-            >
-              <Ionicons name="download-outline" size={18} color="#ffffff" />
-              <Text style={styles.primaryBtnText}>Open VideoDownloader.site</Text>
+              <Ionicons name="download-outline" size={18} color="#6b7280" />
             </TouchableOpacity>
           </View>
         </View>
@@ -100,7 +99,7 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     width: '100%',
-    maxWidth: 360,
+    maxWidth: 340,
     backgroundColor: '#18181f',
     borderRadius: 20,
     borderWidth: 1,
@@ -116,9 +115,9 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   iconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: 'rgba(229, 9, 20, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -165,20 +164,5 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     fontSize: 10,
     marginTop: 2,
-  },
-  primaryBtn: {
-    backgroundColor: '#e50914',
-    paddingVertical: 14,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 4,
-  },
-  primaryBtnText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '800',
   },
 });
