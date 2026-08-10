@@ -7,6 +7,7 @@ import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { MediaItem } from '../types/media';
 
+import { DownloadModal } from './DownloadModal';
 import { EMBED_SERVERS } from '../lib/mediaData';
 import { storageService } from '../lib/storage';
 import { tmdbService } from '../lib/tmdb';
@@ -54,6 +55,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
+  const [downloadModalVisible, setDownloadModalVisible] = useState(false);
 
   const currentServer = EMBED_SERVERS.find((s) => s.id === activeServerId) || EMBED_SERVERS[0];
   const embedUrl = currentServer.getUrl(media.media_type, media.id, season, episode);
@@ -161,16 +163,25 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
             {media.genres.join(' • ')} | {media.quality || 'HD'}
           </Text>
         </View>
-        <TouchableOpacity
-          onPress={toggleWatchlist}
-          style={[styles.bookmarkBtn, isInWatchlist && styles.bookmarkActive]}
-        >
-          <Ionicons
-            name={isInWatchlist ? 'bookmark' : 'bookmark-outline'}
-            size={18}
-            color={isInWatchlist ? '#10b981' : '#ffffff'}
-          />
-        </TouchableOpacity>
+        <View style={styles.headerBarRight}>
+          <TouchableOpacity
+            onPress={toggleWatchlist}
+            style={[styles.bookmarkBtn, isInWatchlist && styles.bookmarkActive]}
+          >
+            <Ionicons
+              name={isInWatchlist ? 'bookmark' : 'bookmark-outline'}
+              size={18}
+              color={isInWatchlist ? '#10b981' : '#ffffff'}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setDownloadModalVisible(true)}
+            style={styles.downloadBtn}
+          >
+            <Ionicons name="download-outline" size={18} color="#ffffff" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Multi-Server Selector Chips */}
@@ -319,6 +330,12 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
         </View>
       )}
 
+      {/* Download Resolver Modal */}
+      <DownloadModal
+        visible={downloadModalVisible}
+        onClose={() => setDownloadModalVisible(false)}
+        media={media}
+      />
     </View>
   );
 };
@@ -339,6 +356,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
   },
+  headerBarRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   title: {
     color: '#ffffff',
     fontSize: 16,
@@ -356,6 +378,11 @@ const styles = StyleSheet.create({
   },
   bookmarkActive: {
     backgroundColor: 'rgba(16, 185, 129, 0.15)',
+  },
+  downloadBtn: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#e50914',
   },
   serverRow: {
     flexDirection: 'row',
