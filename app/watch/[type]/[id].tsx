@@ -7,12 +7,14 @@ import { MobilePlayer } from '../../../components/MobilePlayer';
 import { MobileMediaGrid } from '../../../components/MobileMediaGrid';
 import { MOCK_MEDIA_ITEMS } from '../../../lib/mediaData';
 import { tmdbService } from '../../../lib/tmdb';
+import { getAnimeDetails } from '../../../lib/anilist';
 import { MediaItem } from '../../../types/media';
 
 
 export default function WatchScreen() {
   const { type, id } = useLocalSearchParams<{ type: string; id: string }>();
-  const mediaType: 'movie' | 'tv' = type === 'tv' ? 'tv' : 'movie';
+  const rawType = (type as string) || 'movie';
+  const mediaType: 'movie' | 'tv' | 'anime' = rawType === 'anime' ? 'anime' : rawType === 'tv' ? 'tv' : 'movie';
   const mediaId = id || '550';
 
   const [activeMedia, setActiveMedia] = useState<MediaItem>(() => {
@@ -20,14 +22,15 @@ export default function WatchScreen() {
     return (
       found || {
         id: mediaId,
-        title: mediaType === 'tv' ? 'Featured TV Series' : 'Featured Movie',
-        overview: 'Stream top-quality cinema media across multi-server fallback embed providers.',
+        title: mediaType === 'anime' ? 'Featured Anime' : mediaType === 'tv' ? 'Featured TV Series' : 'Featured Movie',
+        overview: 'Stream top-quality media across multi-server fallback embed providers.',
         poster_path: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800&auto=format&fit=crop&q=80',
         backdrop_path: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1600&auto=format&fit=crop&q=80',
         media_type: mediaType,
         vote_average: 8.5,
         genres: ['Action', 'Drama', 'Sci-Fi'],
         quality: '4K Ultra HD',
+        episodes_count: 12,
       }
     );
   });
@@ -35,19 +38,39 @@ export default function WatchScreen() {
   const [recommended, setRecommended] = useState<MediaItem[]>(MOCK_MEDIA_ITEMS);
 
   useEffect(() => {
-    if (type && type !== 'movie' && type !== 'tv') {
-      router.replace('/');
-      return;
-    }
+    const fetchMetadata = async () => {
+      try {
+        if (mediaType === 'anime') {
+          const animeData = await getAnimeDetails(mediaId);
+          if (animeData) {
+            setActiveMedia({
+              id: animeData.id,
+              title: animeData.title.english || animeData.title.romaji || 'Featured Anime',
+              overview: animeData.description ? animeData.description.replace(/<[^>]*>?/gm, '') : 'Stream high-definition anime.',
+              poster_path: animeData.coverImage.extraLarge || animeData.coverImage.large || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80',
+              backdrop_path: animeData.bannerImage || animeData.coverImage.extraLarge || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1600&auto=format&fit=crop&q=80',
+              media_type: 'anime',
+              vote_average: animeData.averageScore ? animeData.averageScore / 10 : 8.5,
+              genres: animeData.genres?.length ? animeData.genres : ['Anime', 'Action'],
+              quality: '1080p Full HD',
+              episodes_count: animeData.episodes || 12,
+            });
+          }
+        } else {
+          const tmdbItem = await tmdbService.getMediaDetails(mediaId, mediaType);
+          if (tmdbItem) setActiveMedia(tmdbItem);
+        }
+      } catch (e) {
+        console.error('Metadata fetch error:', e);
+      }
+    };
 
-    tmdbService.getMediaDetails(mediaId, mediaType).then((item) => {
-      if (item) setActiveMedia(item);
-    });
+    fetchMetadata();
 
     tmdbService.getTrending().then((trending) => {
       setRecommended(trending.filter((m) => String(m.id) !== String(mediaId)));
     });
-  }, [mediaId, mediaType, type]);
+  }, [mediaId, mediaType]);
 
   const handleBack = () => {
     if (router.canGoBack()) {

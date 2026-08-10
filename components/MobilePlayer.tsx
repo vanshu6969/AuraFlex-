@@ -77,7 +77,12 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
   }, [media.id, media.media_type]);
 
   useEffect(() => {
-    if (media.media_type === 'tv') {
+    if (media.media_type === 'anime') {
+      const epCount = media.episodes_count || 12;
+      setEpisodes(
+        Array.from({ length: epCount }).map((_, i) => ({ episode_number: i + 1, name: `Episode ${i + 1}` }))
+      );
+    } else if (media.media_type === 'tv') {
       setLoadingEpisodes(true);
       tmdbService.getTVSeasonDetails(media.id, season).then((seasonData) => {
         setLoadingEpisodes(false);
@@ -92,7 +97,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
         }
       });
     }
-  }, [media.id, media.media_type, season]);
+  }, [media.id, media.media_type, media.episodes_count, season]);
 
 
   const handleServerSwitch = (serverId: string) => {
@@ -262,8 +267,8 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
         )}
       </View>
 
-      {/* TV Series Season & Episode Selection */}
-      {media.media_type === 'tv' && (
+      {/* TV Series / Anime Season & Episode Selection */}
+      {(media.media_type === 'tv' || media.media_type === 'anime') && (
         <View style={styles.tvSection}>
           <View style={styles.tvHeader}>
             <Text style={styles.tvTitle}>EPISODES ({episodes.length})</Text>
