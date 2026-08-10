@@ -34,19 +34,34 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ visible, onClose, 
 
   if (!visible) return null;
 
-  const handleSniffedDownload = () => {
+  const handleSniffedDownload = async () => {
     setDownloading(true);
-    const targetUrl = sniffedUrl || '#';
-    const fileName = `${media.title.replace(/[^a-zA-Z0-9]/g, '_')}.mp4`;
+    const mediaType = media.media_type || 'movie';
+    const cleanTitle = media.title.replace(/[^a-zA-Z0-9]/g, '_');
+    const fileName = `${cleanTitle}.mp4`;
+    const targetUrl = sniffedUrl || `https://player.videasy.net/${mediaType}/${media.id}`;
 
     if (typeof window !== 'undefined') {
-      const a = document.createElement('a');
-      a.href = targetUrl;
-      a.download = fileName;
-      a.target = '_blank';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      try {
+        const response = await fetch(targetUrl, { mode: 'cors' });
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+      } catch {
+        const link = document.createElement('a');
+        link.href = targetUrl;
+        link.setAttribute('download', fileName);
+        link.target = '_self';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
     } else {
       Linking.openURL(targetUrl).catch(() => {});
     }
