@@ -9,28 +9,28 @@ const NETFLIX_AVATARS = [
   {
     name: 'Popular Characters',
     avatars: [
-      'https://occ-0-2773-2774.1.nflxso.net/dnm/api/v6/vN7bi_My87NPKvsBoib006Llxzg/AAAABXvS69-Xk4NUp8V6K0x-B462R2yJtC5M1qgE9w5M0r0A2b2w7cR8L4A1c3dE5f6g7h8i9j0k.png',
-      'https://occ-0-2773-2774.1.nflxso.net/dnm/api/v6/vN7bi_My87NPKvsBoib006Llxzg/AAAABY5cA-M8kS2G3mJ3R34M8v8k8_J8q8u8v8w8x8y8z8A8B8C8D8E8F8G8H8I8J.png',
-      'https://occ-0-2773-2774.1.nflxso.net/dnm/api/v6/vN7bi_My87NPKvsBoib006Llxzg/AAAABe8fN3J3K3L3M3N3O3P3Q3R3S3T3U3V3W3X3Y3Z3a3b3c3d3e3f3g.png',
-      'https://occ-0-2773-2774.1.nflxso.net/dnm/api/v6/vN7bi_My87NPKvsBoib006Llxzg/AAAABf9gO4K4L4M4N4O4P4Q4R4S4T4U4V4W4X4Y4Z4a4b4c4d4e4f4g4h.png',
+      'https://upload.wikimedia.org/wikipedia/commons/0/0b/Netflix-avatar.png',
+      'https://mir-s3-cdn-cf.behance.net/project_modules/disp/84c20033850498.56ba69ac290ea.png',
+      'https://mir-s3-cdn-cf.behance.net/project_modules/disp/1bd18a33850498.56ba69ac2ba5b.png',
+      'https://mir-s3-cdn-cf.behance.net/project_modules/disp/bf65a833850498.56ba69ac0e2a9.png',
     ],
   },
   {
     name: 'Netflix Classics',
     avatars: [
-      'https://occ-0-2773-2774.1.nflxso.net/dnm/api/v6/vN7bi_My87NPKvsBoib006Llxzg/AAAABTZ5N5O5P5Q5R5S5T5U5V5W5X5Y5Z5a5b5c5d5e5f5g5h5i5j5k.png',
-      'https://occ-0-2773-2774.1.nflxso.net/dnm/api/v6/vN7bi_My87NPKvsBoib006Llxzg/AAAABU0aP6Q6R6S6T6U6V6W6X6Y6Z6a6b6c6d6e6f6g6h6i6j6k6l.png',
-      'https://occ-0-2773-2774.1.nflxso.net/dnm/api/v6/vN7bi_My87NPKvsBoib006Llxzg/AAAABV1bQ7R7S7T7U7V7W7X7Y7Z7a7b7c7d7e7f7g7h7i7j7k7l7m.png',
-      'https://occ-0-2773-2774.1.nflxso.net/dnm/api/v6/vN7bi_My87NPKvsBoib006Llxzg/AAAABW2cR8S8T8U8V8W8X8Y8Z8a8b8c8d8e8f8g8h8i8j8k8l8m8n.png',
+      'https://mir-s3-cdn-cf.behance.net/project_modules/disp/366be133850498.56ba69ac36858.png',
+      'https://mir-s3-cdn-cf.behance.net/project_modules/disp/bb155133850498.56ba69ac33f32.png',
+      'https://mir-s3-cdn-cf.behance.net/project_modules/disp/2b561033850498.56ba69ac31937.png',
+      'https://mir-s3-cdn-cf.behance.net/project_modules/disp/c7906d33850498.56ba69ac352a9.png',
     ],
   },
   {
     name: 'Anime & Superheroes',
     avatars: [
-      'https://api.dicebear.com/7.x/bottts/png?seed=Spider',
-      'https://api.dicebear.com/7.x/bottts/png?seed=Batman',
+      'https://api.dicebear.com/7.x/bottts/png?seed=SpiderMan',
       'https://api.dicebear.com/7.x/adventurer/png?seed=Goku',
-      'https://api.dicebear.com/7.x/adventurer/png?seed=Naruto',
+      'https://api.dicebear.com/7.x/adventurer/png?seed=Luffy',
+      'https://api.dicebear.com/7.x/bottts/png?seed=Batman',
     ],
   },
 ];
@@ -75,7 +75,7 @@ export default function ProfileSettingsPage() {
           </View>
         </View>
         <Text style={styles.previewName}>{name}</Text>
-        <Text style={styles.previewSubtitle}>Choose your Netflix character avatar</Text>
+        <Text style={styles.previewSubtitle}>Choose your character avatar</Text>
       </View>
 
       {/* Categorized Netflix Avatar Gallery */}
