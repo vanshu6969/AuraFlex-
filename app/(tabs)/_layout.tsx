@@ -37,10 +37,24 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="series"
+        options={{
+          title: 'Series',
+          tabBarIcon: ({ color, size }) => <Ionicons name="tv-outline" size={size - 2} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="watchlist"
         options={{
           title: 'Watchlist',
           tabBarIcon: ({ color, size }) => <Ionicons name="bookmark" size={size - 2} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="more"
+        options={{
+          title: 'More',
+          tabBarIcon: ({ color, size }) => <Ionicons name="ellipsis-horizontal" size={size - 2} color={color} />,
         }}
       />
     </Tabs>
