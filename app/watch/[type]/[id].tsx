@@ -35,6 +35,11 @@ export default function WatchScreen() {
   const [recommended, setRecommended] = useState<MediaItem[]>(MOCK_MEDIA_ITEMS);
 
   useEffect(() => {
+    if (type && type !== 'movie' && type !== 'tv') {
+      router.replace('/');
+      return;
+    }
+
     tmdbService.getMediaDetails(mediaId, mediaType).then((item) => {
       if (item) setActiveMedia(item);
     });
@@ -42,7 +47,7 @@ export default function WatchScreen() {
     tmdbService.getTrending().then((trending) => {
       setRecommended(trending.filter((m) => String(m.id) !== String(mediaId)));
     });
-  }, [mediaId, mediaType]);
+  }, [mediaId, mediaType, type]);
 
   const handleBack = () => {
     if (router.canGoBack()) {
