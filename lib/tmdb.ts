@@ -111,16 +111,28 @@ export const tmdbService = {
     }
   },
 
-  async getMediaDetails(id: string | number, type: 'movie' | 'tv' = 'movie'): Promise<MediaItem | null> {
+  async getMediaDetails(id: string | number, type: string = 'movie'): Promise<MediaItem | null> {
+    const primaryType: 'movie' | 'tv' = type === 'tv' ? 'tv' : 'movie';
+    const secondaryType: 'movie' | 'tv' = primaryType === 'movie' ? 'tv' : 'movie';
+
     try {
-      const res = await fetch(`${TMDB_BASE_URL}/${type}/${id}?api_key=${TMDB_API_KEY}&language=en-US`);
-      if (!res.ok) throw new Error('Details fetch error');
-      const data = await res.json();
-      return this.formatMediaItem(data, type);
-    } catch {
-      const fallback = MOCK_MEDIA_ITEMS.find((m) => String(m.id) === String(id));
-      return fallback || null;
-    }
+      const res = await fetch(`${TMDB_BASE_URL}/${primaryType}/${id}?api_key=${TMDB_API_KEY}&language=en-US`);
+      if (res.ok) {
+        const data = await res.json();
+        return this.formatMediaItem(data, primaryType);
+      }
+    } catch {}
+
+    try {
+      const altRes = await fetch(`${TMDB_BASE_URL}/${secondaryType}/${id}?api_key=${TMDB_API_KEY}&language=en-US`);
+      if (altRes.ok) {
+        const altData = await altRes.json();
+        return this.formatMediaItem(altData, secondaryType);
+      }
+    } catch {}
+
+    const fallback = MOCK_MEDIA_ITEMS.find((m) => String(m.id) === String(id));
+    return fallback || null;
   },
 
   async searchMedia(query: string, type: string = 'all'): Promise<MediaItem[]> {

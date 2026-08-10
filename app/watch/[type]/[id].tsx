@@ -12,7 +12,7 @@ import { MediaItem } from '../../../types/media';
 
 export default function WatchScreen() {
   const { type, id } = useLocalSearchParams<{ type: string; id: string }>();
-  const mediaType = (type as 'movie' | 'tv') || 'movie';
+  const mediaType: 'movie' | 'tv' = type === 'tv' ? 'tv' : 'movie';
   const mediaId = id || '550';
 
   const [activeMedia, setActiveMedia] = useState<MediaItem>(() => {
@@ -21,7 +21,7 @@ export default function WatchScreen() {
       found || {
         id: mediaId,
         title: mediaType === 'tv' ? 'Featured TV Series' : 'Featured Movie',
-        overview: 'Stream top-quality cinema media across 3 multi-server fallback embed providers.',
+        overview: 'Stream top-quality cinema media across multi-server fallback embed providers.',
         poster_path: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800&auto=format&fit=crop&q=80',
         backdrop_path: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1600&auto=format&fit=crop&q=80',
         media_type: mediaType,
