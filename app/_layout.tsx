@@ -6,8 +6,6 @@ import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Image } from 'r
 import { Ionicons } from '@expo/vector-icons';
 import { AuthModal } from '../components/AuthModal';
 import { DisclaimerModal } from '../components/DisclaimerModal';
-import { UpdateModal } from '../components/UpdateModal';
-import { OTAInitializer } from '../components/OTAInitializer';
 
 export default function RootLayout() {
   const [authVisible, setAuthVisible] = useState(false);
@@ -33,8 +31,6 @@ export default function RootLayout() {
 
       <AuthModal visible={authVisible} onClose={() => setAuthVisible(false)} />
       <DisclaimerModal />
-      <UpdateModal />
-      <OTAInitializer />
     </View>
   );
 }
