@@ -8,5 +8,11 @@
   "android": {
     "allowMixedContent": true,
     "captureInput": true
+  },
+  "plugins": {
+    "CapacitorUpdater": {
+      "autoUpdate": true,
+      "statsUrl": ""
+    }
   }
 }
