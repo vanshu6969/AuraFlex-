@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, Modal, TouchableOpacity, StyleSheet, Linking, ActivityIndicator } from 'react-native';
+import React from 'react';
+import { View, Text, Modal, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { MediaItem } from '../types/media';
@@ -11,110 +11,64 @@ interface DownloadModalProps {
 }
 
 export const DownloadModal: React.FC<DownloadModalProps> = ({ visible, onClose, media }) => {
-  const [downloading, setDownloading] = useState(false);
-
   if (!visible) return null;
 
-  const handleForceDownload = async (quality: string) => {
-    setDownloading(true);
+  const handleOpenDownloader = (quality = '1080p') => {
     const mediaType = media.media_type || 'movie';
-    const targetUrl = mediaType === 'anime'
-      ? `https://player.videasy.net/anime/${media.id}/1`
-      : mediaType === 'tv'
-      ? `https://player.videasy.net/tv/${media.id}/1/1`
-      : `https://player.videasy.net/movie/${media.id}`;
+    const targetUrl = `https://dl.vidsrc.vip/${mediaType}/${media.id}`;
 
-    const fileName = `${media.title.replace(/[^a-zA-Z0-9]/g, '_')}_${quality}.mp4`;
-
-    try {
-      if (typeof window !== 'undefined' && window.fetch) {
-        try {
-          const response = await fetch(targetUrl, { mode: 'cors' });
-          const blob = await response.blob();
-          const blobUrl = window.URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = blobUrl;
-          link.download = fileName;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          window.URL.revokeObjectURL(blobUrl);
-        } catch {
-          // Fallback anchor attachment with target _self to prevent opening new tab
-          const link = document.createElement('a');
-          link.href = targetUrl;
-          link.setAttribute('download', fileName);
-          link.target = '_self';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        }
-      } else {
-        Linking.openURL(targetUrl).catch(() => {});
-      }
-    } catch (err) {
-      console.warn('Download trigger exception:', err);
-    } finally {
-      setDownloading(false);
-      onClose();
+    if (typeof window !== 'undefined') {
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      Linking.openURL(targetUrl).catch(() => {});
     }
+    onClose();
   };
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.modalCard}>
-          <TouchableOpacity onPress={onClose} disabled={downloading} style={styles.closeBtn}>
+          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
             <Ionicons name="close" size={20} color="#9ca3af" />
           </TouchableOpacity>
 
           <View style={styles.iconCircle}>
-            {downloading ? (
-              <ActivityIndicator size="small" color="#e50914" />
-            ) : (
-              <Ionicons name="download-outline" size={26} color="#e50914" />
-            )}
+            <Ionicons name="download-outline" size={26} color="#e50914" />
           </View>
 
           <Text style={styles.modalTitle} numberOfLines={1}>
-            {downloading ? 'Starting Download...' : `Download ${media.title}`}
+            Download {media.title}
           </Text>
-          <Text style={styles.modalSubtitle}>
-            {downloading ? 'Preparing video stream file...' : 'Select quality to save directly to disk'}
-          </Text>
+          <Text style={styles.modalSubtitle}>Select download method for your device</Text>
 
           <View style={styles.optionsGroup}>
+            {/* Option 1: Fast Stream Downloader */}
             <TouchableOpacity
-              onPress={() => handleForceDownload('1080p')}
-              disabled={downloading}
+              onPress={() => handleOpenDownloader('1080p')}
               activeOpacity={0.8}
-              style={[styles.optionItem, downloading && styles.optionDisabled]}
+              style={styles.primaryBtn}
             >
-              <View style={styles.optionLeft}>
-                <Ionicons name="sparkles" size={18} color="#e50914" />
+              <View style={styles.btnLeft}>
+                <Ionicons name="download" size={20} color="#ffffff" />
                 <View>
-                  <Text style={styles.optionTitle}>1080p Ultra HD</Text>
-                  <Text style={styles.optionSub}>Highest quality • Save to device</Text>
+                  <Text style={styles.primaryBtnTitle}>Generate Download Link</Text>
+                  <Text style={styles.primaryBtnSub}>1080p / 720p Direct MP4 Stream</Text>
                 </View>
               </View>
-              <Ionicons name="download-outline" size={18} color="#6b7280" />
+              <Ionicons name="open-outline" size={16} color="#ffffff" />
             </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => handleForceDownload('720p')}
-              disabled={downloading}
-              activeOpacity={0.8}
-              style={[styles.optionItem, downloading && styles.optionDisabled]}
-            >
-              <View style={styles.optionLeft}>
-                <Ionicons name="film-outline" size={18} color="#d1d5db" />
-                <View>
-                  <Text style={styles.optionTitle}>720p Standard HD</Text>
-                  <Text style={styles.optionSub}>Fast save • Mobile optimized</Text>
-                </View>
+            {/* Option 2: Mobile / App Tips */}
+            <View style={styles.tipBox}>
+              <View style={styles.tipHeader}>
+                <Ionicons name="phone-portrait-outline" size={16} color="#e50914" />
+                <Text style={styles.tipHeaderTitle}>Android App Users</Text>
               </View>
-              <Ionicons name="download-outline" size={18} color="#6b7280" />
-            </TouchableOpacity>
+              <Text style={styles.tipText}>
+                Install <Text style={styles.boldText}>1DM</Text> or <Text style={styles.boldText}>IDM</Text> from Google Play Store to catch full HD video downloads automatically while playing in AuraFlex!
+              </Text>
+            </View>
           </View>
         </View>
       </View>
@@ -132,7 +86,7 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     width: '100%',
-    maxWidth: 340,
+    maxWidth: 360,
     backgroundColor: '#18181f',
     borderRadius: 20,
     borderWidth: 1,
@@ -171,34 +125,56 @@ const styles = StyleSheet.create({
   },
   optionsGroup: {
     width: '100%',
-    gap: 10,
+    gap: 12,
   },
-  optionItem: {
+  primaryBtn: {
+    backgroundColor: '#e50914',
+    padding: 14,
+    borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#0f0f12',
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
-  optionDisabled: {
-    opacity: 0.5,
-  },
-  optionLeft: {
+  btnLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  optionTitle: {
+  primaryBtnTitle: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  primaryBtnSub: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  tipBox: {
+    backgroundColor: '#0f0f12',
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    gap: 6,
+  },
+  tipHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  tipHeaderTitle: {
     color: '#f3f4f6',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
   },
-  optionSub: {
+  tipText: {
     color: '#9ca3af',
-    fontSize: 10,
-    marginTop: 2,
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  boldText: {
+    color: '#ffffff',
+    fontWeight: '700',
   },
 });
