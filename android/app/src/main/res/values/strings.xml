@@ -2,6 +2,5 @@
 <resources>
     <string name="app_name">AuraFlex</string>
     <string name="title_activity_main">AuraFlex</string>
-    <string name="package_name">com.vegacinema.app</string>
-    <string name="custom_url_scheme">com.vegacinema.app</string>
+    <string name="package_name">com.auraflex.app</string>
 </resources>
