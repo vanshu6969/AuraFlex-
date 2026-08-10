@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, Modal, TouchableOpacity, StyleSheet, Linking, ActivityIndicator } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { MediaItem } from '../types/media';
-import { getSniffedStreams } from '../lib/sniffer';
 
 interface DownloadModalProps {
   visible: boolean;
@@ -12,64 +11,46 @@ interface DownloadModalProps {
 }
 
 export const DownloadModal: React.FC<DownloadModalProps> = ({ visible, onClose, media }) => {
-  const [sniffedUrl, setSniffedUrl] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
-
-  useEffect(() => {
-    if (visible) {
-      const activeStreams = getSniffedStreams();
-      if (activeStreams.length > 0) {
-        setSniffedUrl(activeStreams[0].url);
-      } else {
-        const mediaType = media.media_type || 'movie';
-        const fallbackUrl = mediaType === 'anime'
-          ? `https://player.videasy.net/anime/${media.id}/1`
-          : mediaType === 'tv'
-          ? `https://player.videasy.net/tv/${media.id}/1/1`
-          : `https://player.videasy.net/movie/${media.id}`;
-        setSniffedUrl(fallbackUrl);
-      }
-    }
-  }, [visible, media]);
+  const [completed, setCompleted] = useState(false);
 
   if (!visible) return null;
 
-  const handleSniffedDownload = async () => {
+  const handleNativeDownload = async () => {
     setDownloading(true);
-    const mediaType = media.media_type || 'movie';
-    const cleanTitle = media.title.replace(/[^a-zA-Z0-9]/g, '_');
-    const fileName = `${cleanTitle}.mp4`;
-    const targetUrl = sniffedUrl || `https://player.videasy.net/${mediaType}/${media.id}`;
 
-    if (typeof window !== 'undefined') {
-      try {
-        const response = await fetch(targetUrl, { mode: 'cors' });
-        const blob = await response.blob();
-        const blobUrl = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(blobUrl);
-      } catch {
-        const link = document.createElement('a');
-        link.href = targetUrl;
-        link.setAttribute('download', fileName);
-        link.target = '_self';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    try {
+      const mediaType = media.media_type || 'movie';
+      const cleanTitle = media.title.replace(/[^a-zA-Z0-9]/g, '_');
+      const fileName = `${cleanTitle}_1080p.mp4`;
+      const streamUrl = mediaType === 'anime'
+        ? `https://player.videasy.net/anime/${media.id}/1`
+        : mediaType === 'tv'
+        ? `https://player.videasy.net/tv/${media.id}/1/1`
+        : `https://player.videasy.net/movie/${media.id}`;
+
+      if (typeof window !== 'undefined') {
+        const a = document.createElement('a');
+        a.href = streamUrl;
+        a.setAttribute('download', fileName);
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else {
+        Linking.openURL(streamUrl).catch(() => {});
       }
-    } else {
-      Linking.openURL(targetUrl).catch(() => {});
-    }
 
-    setTimeout(() => {
       setDownloading(false);
-      onClose();
-    }, 1500);
+      setCompleted(true);
+      setTimeout(() => {
+        setCompleted(false);
+        onClose();
+      }, 2000);
+    } catch (err) {
+      console.error('Download error:', err);
+      setDownloading(false);
+    }
   };
 
   return (
@@ -83,40 +64,43 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ visible, onClose, 
           <View style={styles.iconCircle}>
             {downloading ? (
               <ActivityIndicator size="small" color="#e50914" />
+            ) : completed ? (
+              <Ionicons name="checkmark-circle" size={26} color="#10b981" />
             ) : (
-              <Ionicons name="sparkles" size={26} color="#e50914" />
+              <Ionicons name="download-outline" size={26} color="#e50914" />
             )}
           </View>
 
-          <Text style={styles.modalTitle}>In-App Media Sniffer</Text>
-          <Text style={styles.modalSubtitle}>Automatic stream detection</Text>
+          <Text style={styles.modalTitle}>
+            {completed ? 'Download Started!' : 'Direct Download'}
+          </Text>
+          <Text style={styles.modalSubtitle} numberOfLines={1}>
+            {media.title}
+          </Text>
 
-          <View style={styles.detectedBox}>
-            <Ionicons name="checkmark-circle" size={22} color="#10b981" />
+          <View style={styles.infoCard}>
+            <Ionicons name="hardware-chip-outline" size={22} color="#e50914" />
             <View style={{ flex: 1 }}>
-              <Text style={styles.detectedTitle} numberOfLines={1}>
-                {media.title}
-              </Text>
-              <Text style={styles.detectedSub}>Stream Detected (1080p HD)</Text>
+              <Text style={styles.infoCardTitle}>Full HD 1080p Stream</Text>
+              <Text style={styles.infoCardSub}>Saves directly to your device downloads</Text>
             </View>
           </View>
 
           <TouchableOpacity
-            onPress={handleSniffedDownload}
-            disabled={downloading}
+            onPress={handleNativeDownload}
+            disabled={downloading || completed}
             activeOpacity={0.8}
-            style={[styles.primaryBtn, downloading && styles.btnDisabled]}
+            style={[styles.primaryBtn, (downloading || completed) && styles.btnDisabled]}
           >
-            <Ionicons name="download" size={18} color="#ffffff" />
+            <Ionicons name="sparkles" size={18} color="#ffffff" />
             <Text style={styles.primaryBtnText}>
-              {downloading ? 'Downloading File...' : 'Download Stream Now'}
+              {downloading
+                ? 'Connecting to Stream...'
+                : completed
+                ? 'Check Notification Bar'
+                : 'Download Now'}
             </Text>
           </TouchableOpacity>
-
-          <View style={styles.footerRow}>
-            <Ionicons name="shield-checkmark" size={14} color="#9ca3af" />
-            <Text style={styles.footerText}>AuraFlex Native Downloader Engine</Text>
-          </View>
         </View>
       </View>
     </Modal>
@@ -170,7 +154,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 16,
   },
-  detectedBox: {
+  infoCard: {
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
@@ -182,15 +166,14 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 16,
   },
-  detectedTitle: {
+  infoCardTitle: {
     color: '#ffffff',
     fontSize: 13,
     fontWeight: '700',
   },
-  detectedSub: {
-    color: '#10b981',
+  infoCardSub: {
+    color: '#9ca3af',
     fontSize: 11,
-    fontWeight: '600',
     marginTop: 2,
   },
   primaryBtn: {
@@ -210,16 +193,5 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 13,
     fontWeight: '800',
-  },
-  footerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 14,
-  },
-  footerText: {
-    color: '#6b7280',
-    fontSize: 10,
-    fontWeight: '500',
   },
 });
