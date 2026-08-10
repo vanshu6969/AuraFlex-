@@ -8,6 +8,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "dev": "expo start --web",
     "build": "expo export --platform web",
     "cap:build": "npm run build && npx cap sync",
     "cap:open": "npx cap open android"

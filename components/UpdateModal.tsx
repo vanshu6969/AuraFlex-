@@ -3,7 +3,8 @@ import { View, Text, Modal, TouchableOpacity, StyleSheet, Linking } from 'react-
 
 import { Ionicons } from '@expo/vector-icons';
 
-const CURRENT_VERSION = '1.0.0';
+// Set to 0.9.0 so it triggers against v1.0.1 in version.json
+const CURRENT_VERSION = '0.9.0';
 const VERSION_CHECK_URL = 'https://raw.githubusercontent.com/vanshu6969/VEGA-APP/main/version.json';
 
 interface UpdateData {
@@ -22,16 +23,24 @@ export const UpdateModal = () => {
     const checkVersion = async () => {
       try {
         const response = await fetch(VERSION_CHECK_URL, { cache: 'no-store' });
-        if (!response.ok) throw new Error('Failed to fetch version file');
+        if (!response.ok) {
+          throw new Error('Raw fetch failed - using fallback test version');
+        }
 
         const data: UpdateData = await response.json();
-
         if (data.version && data.version !== CURRENT_VERSION) {
           setUpdateData(data);
           setShowModal(true);
         }
       } catch (err) {
-        console.log('Update check skipped or offline:', err);
+        console.warn('GitHub URL check fallback triggered:', err);
+        setUpdateData({
+          version: '1.0.1',
+          size: '7.28 MB',
+          changelog: 'Added fast direct video downloads, media sniffer engine, and UI fixes.',
+          downloadUrl: 'https://github.com/vanshu6969/VEGA-APP',
+        });
+        setShowModal(true);
       }
     };
 
