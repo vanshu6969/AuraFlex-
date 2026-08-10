@@ -3,9 +3,8 @@
   "appName": "AuraFlex",
   "webDir": "dist",
   "server": {
-    "androidScheme": "http",
+    "androidScheme": "https",
     "allowNavigation": [
-      "localhost",
       "*.videasy.net",
       "*.embedmaster.net",
       "*.filmu.in",
