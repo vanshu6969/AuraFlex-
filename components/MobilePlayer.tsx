@@ -11,6 +11,7 @@ import { DownloadModal } from './DownloadModal';
 import { EMBED_SERVERS } from '../lib/mediaData';
 import { storageService } from '../lib/storage';
 import { tmdbService } from '../lib/tmdb';
+import { injectMediaSniffer } from '../lib/sniffer';
 
 interface MobilePlayerProps {
   media: MediaItem;
@@ -61,6 +62,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
   const embedUrl = currentServer.getUrl(media.media_type, media.id, season, episode);
 
   useEffect(() => {
+    injectMediaSniffer();
     storageService.isInWatchlist(media.id).then(setIsInWatchlist);
     storageService.saveProgress(media, 120, 7200, season, episode);
   }, [media, season, episode]);
