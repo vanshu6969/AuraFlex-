@@ -7,11 +7,9 @@ import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { MediaItem } from '../types/media';
 
-import { DownloadModal } from './DownloadModal';
 import { EMBED_SERVERS } from '../lib/mediaData';
 import { storageService } from '../lib/storage';
 import { tmdbService } from '../lib/tmdb';
-import { injectMediaSniffer } from '../lib/sniffer';
 
 interface MobilePlayerProps {
   media: MediaItem;
@@ -56,13 +54,11 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
-  const [downloadModalVisible, setDownloadModalVisible] = useState(false);
 
   const currentServer = EMBED_SERVERS.find((s) => s.id === activeServerId) || EMBED_SERVERS[0];
   const embedUrl = currentServer.getUrl(media.media_type, media.id, season, episode);
 
   useEffect(() => {
-    injectMediaSniffer();
     storageService.isInWatchlist(media.id).then(setIsInWatchlist);
     storageService.saveProgress(media, 120, 7200, season, episode);
   }, [media, season, episode]);
@@ -165,25 +161,16 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
             {media.genres.join(' • ')} | {media.quality || 'HD'}
           </Text>
         </View>
-        <View style={styles.headerBarRight}>
-          <TouchableOpacity
-            onPress={toggleWatchlist}
-            style={[styles.bookmarkBtn, isInWatchlist && styles.bookmarkActive]}
-          >
-            <Ionicons
-              name={isInWatchlist ? 'bookmark' : 'bookmark-outline'}
-              size={18}
-              color={isInWatchlist ? '#10b981' : '#ffffff'}
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setDownloadModalVisible(true)}
-            style={styles.downloadBtn}
-          >
-            <Ionicons name="download-outline" size={18} color="#ffffff" />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          onPress={toggleWatchlist}
+          style={[styles.bookmarkBtn, isInWatchlist && styles.bookmarkActive]}
+        >
+          <Ionicons
+            name={isInWatchlist ? 'bookmark' : 'bookmark-outline'}
+            size={18}
+            color={isInWatchlist ? '#10b981' : '#ffffff'}
+          />
+        </TouchableOpacity>
       </View>
 
       {/* Multi-Server Selector Chips */}
@@ -332,12 +319,6 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
         </View>
       )}
 
-      {/* Download Resolver Modal */}
-      <DownloadModal
-        visible={downloadModalVisible}
-        onClose={() => setDownloadModalVisible(false)}
-        media={media}
-      />
     </View>
   );
 };
