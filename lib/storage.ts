@@ -183,5 +183,27 @@ export const storageService = {
       }
     } catch {}
   },
+
+  async clearHistory(): Promise<boolean> {
+    try {
+      await safeStorage.removeItem(LOCAL_PROGRESS_KEY);
+    } catch {}
+
+    notifyStorageChange();
+
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const user = session?.session?.user;
+
+      if (user) {
+        await supabase
+          .from('watch_progress')
+          .delete()
+          .eq('user_id', user.id);
+      }
+    } catch {}
+
+    return true;
+  },
 };
 
