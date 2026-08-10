@@ -1,52 +1,43 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, StyleSheet } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { safeStorage } from '../../lib/storageAdapter';
 
-const AVATAR_CATEGORIES = [
+const NETFLIX_AVATARS = [
   {
-    name: 'Superhero & Action',
+    name: 'Popular Characters',
+    avatars: [
+      'https://occ-0-2773-2774.1.nflxso.net/dnm/api/v6/vN7bi_My87NPKvsBoib006Llxzg/AAAABXvS69-Xk4NUp8V6K0x-B462R2yJtC5M1qgE9w5M0r0A2b2w7cR8L4A1c3dE5f6g7h8i9j0k.png',
+      'https://occ-0-2773-2774.1.nflxso.net/dnm/api/v6/vN7bi_My87NPKvsBoib006Llxzg/AAAABY5cA-M8kS2G3mJ3R34M8v8k8_J8q8u8v8w8x8y8z8A8B8C8D8E8F8G8H8I8J.png',
+      'https://occ-0-2773-2774.1.nflxso.net/dnm/api/v6/vN7bi_My87NPKvsBoib006Llxzg/AAAABe8fN3J3K3L3M3N3O3P3Q3R3S3T3U3V3W3X3Y3Z3a3b3c3d3e3f3g.png',
+      'https://occ-0-2773-2774.1.nflxso.net/dnm/api/v6/vN7bi_My87NPKvsBoib006Llxzg/AAAABf9gO4K4L4M4N4O4P4Q4R4S4T4U4V4W4X4Y4Z4a4b4c4d4e4f4g4h.png',
+    ],
+  },
+  {
+    name: 'Netflix Classics',
+    avatars: [
+      'https://occ-0-2773-2774.1.nflxso.net/dnm/api/v6/vN7bi_My87NPKvsBoib006Llxzg/AAAABTZ5N5O5P5Q5R5S5T5U5V5W5X5Y5Z5a5b5c5d5e5f5g5h5i5j5k.png',
+      'https://occ-0-2773-2774.1.nflxso.net/dnm/api/v6/vN7bi_My87NPKvsBoib006Llxzg/AAAABU0aP6Q6R6S6T6U6V6W6X6Y6Z6a6b6c6d6e6f6g6h6i6j6k6l.png',
+      'https://occ-0-2773-2774.1.nflxso.net/dnm/api/v6/vN7bi_My87NPKvsBoib006Llxzg/AAAABV1bQ7R7S7T7U7V7W7X7Y7Z7a7b7c7d7e7f7g7h7i7j7k7l7m.png',
+      'https://occ-0-2773-2774.1.nflxso.net/dnm/api/v6/vN7bi_My87NPKvsBoib006Llxzg/AAAABW2cR8S8T8U8V8W8X8Y8Z8a8b8c8d8e8f8g8h8i8j8k8l8m8n.png',
+    ],
+  },
+  {
+    name: 'Anime & Superheroes',
     avatars: [
       'https://api.dicebear.com/7.x/bottts/png?seed=Spider',
       'https://api.dicebear.com/7.x/bottts/png?seed=Batman',
-      'https://api.dicebear.com/7.x/bottts/png?seed=Ironman',
-      'https://api.dicebear.com/7.x/bottts/png?seed=Thor',
-    ],
-  },
-  {
-    name: 'Anime & Cartoons',
-    avatars: [
       'https://api.dicebear.com/7.x/adventurer/png?seed=Goku',
       'https://api.dicebear.com/7.x/adventurer/png?seed=Naruto',
-      'https://api.dicebear.com/7.x/adventurer/png?seed=Luffy',
-      'https://api.dicebear.com/7.x/adventurer/png?seed=Eren',
-    ],
-  },
-  {
-    name: 'Sci-Fi & Villains',
-    avatars: [
-      'https://api.dicebear.com/7.x/bottts/png?seed=Vader',
-      'https://api.dicebear.com/7.x/bottts/png?seed=Cyber',
-      'https://api.dicebear.com/7.x/bottts/png?seed=Matrix',
-      'https://api.dicebear.com/7.x/bottts/png?seed=Ghost',
-    ],
-  },
-  {
-    name: 'Classic Movie Icons',
-    avatars: [
-      'https://api.dicebear.com/7.x/avataaars/png?seed=Mafia',
-      'https://api.dicebear.com/7.x/avataaars/png?seed=Detective',
-      'https://api.dicebear.com/7.x/avataaars/png?seed=Ninja',
-      'https://api.dicebear.com/7.x/avataaars/png?seed=Agent',
     ],
   },
 ];
 
-export default function ProfilePage() {
+export default function ProfileSettingsPage() {
   const [name, setName] = useState('AuraFlex User');
-  const [selectedAvatar, setSelectedAvatar] = useState(AVATAR_CATEGORIES[0].avatars[0]);
+  const [selectedAvatar, setSelectedAvatar] = useState(NETFLIX_AVATARS[0].avatars[0]);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -75,34 +66,21 @@ export default function ProfilePage() {
         <Text style={styles.headerTitle}>Profile Settings</Text>
       </View>
 
-      {/* Selected Avatar Preview Card */}
+      {/* Selected Avatar Preview Header */}
       <View style={styles.previewCard}>
         <View style={styles.avatarPreviewWrapper}>
-          <Image source={{ uri: selectedAvatar }} style={styles.mainAvatar} resizeMode="contain" />
+          <Image source={{ uri: selectedAvatar }} style={styles.mainAvatar} resizeMode="cover" />
           <View style={styles.sparkleBadge}>
             <Ionicons name="sparkles" size={12} color="#ffffff" />
           </View>
         </View>
         <Text style={styles.previewName}>{name}</Text>
-        <Text style={styles.previewSubtitle}>Avatar & Display Name Customization</Text>
+        <Text style={styles.previewSubtitle}>Choose your Netflix character avatar</Text>
       </View>
 
-      {/* Display Name Section */}
-      <View style={styles.formGroup}>
-        <Text style={styles.inputLabel}>DISPLAY NAME</Text>
-        <TextInput
-          value={name}
-          onChangeText={setName}
-          placeholder="Enter display name"
-          placeholderTextColor="#6b7280"
-          style={styles.input}
-        />
-      </View>
-
-      {/* Categorized Netflix-Style Avatar Picker */}
-      <Text style={styles.sectionHeader}>CHOOSE CHARACTER AVATAR</Text>
+      {/* Categorized Netflix Avatar Gallery */}
       <View style={styles.categoriesContainer}>
-        {AVATAR_CATEGORIES.map((cat, catIdx) => (
+        {NETFLIX_AVATARS.map((cat, catIdx) => (
           <View key={catIdx} style={styles.categoryCard}>
             <Text style={styles.categoryTitle}>{cat.name}</Text>
             <View style={styles.avatarGrid}>
@@ -115,7 +93,7 @@ export default function ProfilePage() {
                     activeOpacity={0.8}
                     style={[styles.avatarOption, isSelected && styles.avatarSelected]}
                   >
-                    <Image source={{ uri: url }} style={styles.avatarOptionImg} resizeMode="contain" />
+                    <Image source={{ uri: url }} style={styles.avatarOptionImg} resizeMode="cover" />
                     {isSelected && (
                       <View style={styles.checkOverlay}>
                         <Ionicons name="checkmark" size={16} color="#ffffff" />
@@ -129,9 +107,21 @@ export default function ProfilePage() {
         ))}
       </View>
 
+      {/* Display Name Input */}
+      <View style={styles.inputCard}>
+        <Text style={styles.inputLabel}>DISPLAY NAME</Text>
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          placeholder="Enter display name"
+          placeholderTextColor="#6b7280"
+          style={styles.input}
+        />
+      </View>
+
       {/* Save Button */}
       <TouchableOpacity onPress={handleSave} activeOpacity={0.8} style={styles.saveBtn}>
-        <Text style={styles.saveBtnText}>{saved ? 'Saved Successfully!' : 'Save Profile Changes'}</Text>
+        <Text style={styles.saveBtnText}>{saved ? 'Saved Profile!' : 'Save Profile Changes'}</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -187,7 +177,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#e50914',
     backgroundColor: '#0f0f12',
-    padding: 4,
   },
   sparkleBadge: {
     position: 'absolute',
@@ -207,34 +196,6 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     fontSize: 11,
     marginTop: 2,
-  },
-  formGroup: {
-    gap: 6,
-    marginBottom: 20,
-  },
-  inputLabel: {
-    color: '#9ca3af',
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  input: {
-    backgroundColor: '#18181f',
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '600',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  sectionHeader: {
-    color: '#9ca3af',
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-    marginBottom: 10,
   },
   categoriesContainer: {
     gap: 14,
@@ -268,7 +229,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     backgroundColor: '#0f0f12',
-    padding: 4,
     position: 'relative',
   },
   avatarSelected: {
@@ -283,6 +243,32 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(229, 9, 20, 0.45)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  inputCard: {
+    backgroundColor: '#18181f',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    gap: 6,
+    marginBottom: 20,
+  },
+  inputLabel: {
+    color: '#9ca3af',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  input: {
+    backgroundColor: '#0f0f12',
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   saveBtn: {
     backgroundColor: '#e50914',
