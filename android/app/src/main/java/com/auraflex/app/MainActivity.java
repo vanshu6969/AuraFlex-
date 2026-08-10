@@ -33,8 +33,20 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         
         try {
+            android.view.Window window = getWindow();
+            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            window.setStatusBarColor(android.graphics.Color.parseColor("#0f0f12"));
+            window.setNavigationBarColor(android.graphics.Color.parseColor("#0f0f12"));
+
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                window.setNavigationBarContrastEnforced(false);
+            }
+
             WebView webView = this.bridge.getWebView();
             if (webView != null) {
+                webView.setBackgroundColor(android.graphics.Color.parseColor("#0f0f12"));
                 WebSettings settings = webView.getSettings();
 
                 // Storage & Cookie permissions
