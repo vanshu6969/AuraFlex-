@@ -8,8 +8,6 @@ import { tmdbService } from '../../lib/tmdb';
 import { MediaItem } from '../../types/media';
 
 
-import { fetchTrendingAnime, searchAnime, mapAniListToMediaItem } from '../../lib/anilist';
-
 export default function SearchScreen() {
   const [results, setResults] = useState<MediaItem[]>(MOCK_MEDIA_ITEMS);
 
@@ -17,17 +15,9 @@ export default function SearchScreen() {
     let list: MediaItem[] = [];
 
     if (query.trim()) {
-      if (category === 'anime') {
-        const aniList = await searchAnime(query);
-        list = aniList.map(mapAniListToMediaItem);
-      } else {
-        list = await tmdbService.searchMedia(query, category);
-      }
+      list = await tmdbService.searchMedia(query, category);
     } else {
-      if (category === 'anime') {
-        const aniList = await fetchTrendingAnime();
-        list = aniList.map(mapAniListToMediaItem);
-      } else if (category === 'movie') {
+      if (category === 'movie') {
         list = await tmdbService.getPopularMovies();
       } else if (category === 'tv') {
         list = await tmdbService.getTopTVShows();
@@ -41,7 +31,7 @@ export default function SearchScreen() {
     }
 
     if (selectedGenre && selectedGenre !== 'All') {
-      list = list.filter((item) => item.genres && item.genres.includes(selectedGenre));
+      list = list.filter((item) => item.genres.includes(selectedGenre));
     }
 
     setResults(list);

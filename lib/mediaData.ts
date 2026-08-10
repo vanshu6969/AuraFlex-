@@ -7,9 +7,7 @@ export const EMBED_SERVERS: EmbedServer[] = [
     name: 'HD',
     badge: 'HD Server',
     getUrl: (type, id, season = 1, episode = 1) =>
-      type === 'anime'
-        ? `https://player.videasy.net/anime/${id}/${episode}?sub=en`
-        : type === 'tv'
+      type === 'tv'
         ? `https://player.videasy.net/tv/${id}/${season}/${episode}?sub=en`
         : `https://player.videasy.net/movie/${id}?sub=en`,
   },
@@ -18,9 +16,7 @@ export const EMBED_SERVERS: EmbedServer[] = [
     name: 'English',
     badge: 'English Server',
     getUrl: (type, id, season = 1, episode = 1) =>
-      type === 'anime'
-        ? `https://embedmaster.link/anime/${id}/${episode}?ds_lang=en`
-        : type === 'tv'
+      type === 'tv'
         ? `https://embedmaster.link/tv/${id}/${season}/${episode}?ds_lang=en`
         : `https://embedmaster.link/movie/${id}?ds_lang=en`,
   },
@@ -29,9 +25,7 @@ export const EMBED_SERVERS: EmbedServer[] = [
     name: 'Indian',
     badge: 'Indian Server',
     getUrl: (type, id, season = 1, episode = 1) =>
-      type === 'anime'
-        ? `https://embed.filmu.in/anime/${id}/${episode}`
-        : type === 'tv'
+      type === 'tv'
         ? `https://embed.filmu.in/tv/${id}/${season}/${episode}`
         : `https://embed.filmu.in/movie/${id}`,
   },

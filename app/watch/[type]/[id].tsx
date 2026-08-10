@@ -10,11 +10,9 @@ import { tmdbService } from '../../../lib/tmdb';
 import { MediaItem } from '../../../types/media';
 
 
-import { getAnimeDetails, mapAniListToMediaItem } from '../../../lib/anilist';
-
 export default function WatchScreen() {
   const { type, id } = useLocalSearchParams<{ type: string; id: string }>();
-  const mediaType = (type as 'movie' | 'tv' | 'anime') || 'movie';
+  const mediaType = (type as 'movie' | 'tv') || 'movie';
   const mediaId = id || '550';
 
   const [activeMedia, setActiveMedia] = useState<MediaItem>(() => {
@@ -22,7 +20,7 @@ export default function WatchScreen() {
     return (
       found || {
         id: mediaId,
-        title: mediaType === 'anime' ? 'Featured Anime' : mediaType === 'tv' ? 'Featured TV Series' : 'Featured Movie',
+        title: mediaType === 'tv' ? 'Featured TV Series' : 'Featured Movie',
         overview: 'Stream top-quality cinema media across 3 multi-server fallback embed providers.',
         poster_path: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800&auto=format&fit=crop&q=80',
         backdrop_path: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1600&auto=format&fit=crop&q=80',
@@ -37,17 +35,9 @@ export default function WatchScreen() {
   const [recommended, setRecommended] = useState<MediaItem[]>(MOCK_MEDIA_ITEMS);
 
   useEffect(() => {
-    if (mediaType === 'anime') {
-      getAnimeDetails(Number(mediaId)).then((animeData) => {
-        if (animeData) {
-          setActiveMedia(mapAniListToMediaItem(animeData));
-        }
-      });
-    } else {
-      tmdbService.getMediaDetails(mediaId, mediaType).then((item) => {
-        if (item) setActiveMedia(item);
-      });
-    }
+    tmdbService.getMediaDetails(mediaId, mediaType).then((item) => {
+      if (item) setActiveMedia(item);
+    });
 
     tmdbService.getTrending().then((trending) => {
       setRecommended(trending.filter((m) => String(m.id) !== String(mediaId)));

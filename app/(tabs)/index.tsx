@@ -11,14 +11,11 @@ import { storageService, subscribeStorage } from '../../lib/storage';
 import { MediaItem, WatchProgress } from '../../types/media';
 
 
-import { fetchTrendingAnime, mapAniListToMediaItem } from '../../lib/anilist';
-
 export default function HomeScreen() {
   const [continueWatching, setContinueWatching] = useState<WatchProgress[]>([]);
   const [trending, setTrending] = useState<MediaItem[]>(MOCK_MEDIA_ITEMS);
   const [popularMovies, setPopularMovies] = useState<MediaItem[]>([]);
   const [topTVShows, setTopTVShows] = useState<MediaItem[]>([]);
-  const [trendingAnime, setTrendingAnime] = useState<MediaItem[]>([]);
   const [recentlyAdded, setRecentlyAdded] = useState<MediaItem[]>([]);
 
   useEffect(() => {
@@ -31,7 +28,6 @@ export default function HomeScreen() {
     tmdbService.getPopularMovies().then(setPopularMovies);
     tmdbService.getTopTVShows().then(setTopTVShows);
     tmdbService.getRecentlyAdded().then(setRecentlyAdded);
-    fetchTrendingAnime().then((list) => setTrendingAnime(list.map(mapAniListToMediaItem)));
 
     return unsubscribe;
   }, []);
@@ -88,7 +84,6 @@ export default function HomeScreen() {
 
       {/* Media Rows */}
       <MobileMediaGrid title="🔥 Trending Now" items={trending} variant="carousel" />
-      <MobileMediaGrid title="🎌 Trending Anime" items={trendingAnime} variant="carousel" />
       <MobileMediaGrid title="🎬 Popular Movies" items={popularMovies} variant="carousel" />
       <MobileMediaGrid title="📺 Top Rated TV Series" items={topTVShows} variant="carousel" />
       <MobileMediaGrid title="✨ Recently Added" items={recentlyAdded} variant="grid" />

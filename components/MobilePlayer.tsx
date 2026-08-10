@@ -10,7 +10,6 @@ import { MediaItem } from '../types/media';
 import { EMBED_SERVERS } from '../lib/mediaData';
 import { storageService } from '../lib/storage';
 import { tmdbService } from '../lib/tmdb';
-import { getAnimeDetails } from '../lib/anilist';
 
 interface MobilePlayerProps {
   media: MediaItem;
@@ -73,16 +72,6 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
             setSeasons(validSeasons);
           }
         }
-      });
-    } else if (media.media_type === 'anime') {
-      setLoadingEpisodes(true);
-      getAnimeDetails(Number(media.id)).then((animeData) => {
-        setLoadingEpisodes(false);
-        const epCount = animeData?.episodes || 12;
-        setSeasons([{ season_number: 1, episode_count: epCount, name: 'Season 1' }]);
-        setEpisodes(
-          Array.from({ length: epCount }).map((_, i) => ({ episode_number: i + 1, name: `Episode ${i + 1}` }))
-        );
       });
     }
   }, [media.id, media.media_type]);
@@ -273,8 +262,8 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
         )}
       </View>
 
-      {/* TV Series / Anime Season & Episode Selection */}
-      {(media.media_type === 'tv' || media.media_type === 'anime') && (
+      {/* TV Series Season & Episode Selection */}
+      {media.media_type === 'tv' && (
         <View style={styles.tvSection}>
           <View style={styles.tvHeader}>
             <Text style={styles.tvTitle}>EPISODES ({episodes.length})</Text>
