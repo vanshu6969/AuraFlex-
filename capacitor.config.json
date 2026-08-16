@@ -8,7 +8,7 @@
   "plugins": {
     "CapacitorUpdater": {
       "autoUpdate": true,
-      "statsUrl": "https://raw.githubusercontent.com/vanshu6969/AuraFlex/main/update.json"
+      "statsUrl": "https://raw.githubusercontent.com/vanshu6969/AuraFlex-/main/update.json"
     }
   },
   "android": {
