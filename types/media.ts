@@ -13,6 +13,8 @@ export interface MediaItem {
   duration?: string;
   quality?: string;
   episodes_count?: number;
+  origin_country?: string[];
+  original_language?: string;
 }
 
 export interface WatchProgress {
@@ -29,5 +31,5 @@ export interface EmbedServer {
   id: string;
   name: string;
   badge: string;
-  getUrl: (type: 'movie' | 'tv' | 'anime', id: number | string, season?: number, episode?: number) => string;
+  getUrl: (type: 'movie' | 'tv' | 'anime', id: number | string, season?: number, episode?: number, anilistId?: number | null) => string;
 }

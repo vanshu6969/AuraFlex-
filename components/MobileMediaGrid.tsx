@@ -15,7 +15,7 @@ export const MobileMediaGrid: React.FC<MobileMediaGridProps> = ({
   items,
   variant = 'carousel',
 }) => {
-  if (items.length === 0) return null;
+  if (!items || items.length === 0) return null;
 
   return (
     <View style={styles.container}>
@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    marginBottom: 10,
+    marginBottom: 14,
     gap: 8,
   },
   accentBar: {
@@ -76,14 +76,12 @@ const styles = StyleSheet.create({
   gridContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 12,
-    justifyContent: 'space-between',
-    gap: 10,
+    paddingHorizontal: 16,
+    justifyContent: 'flex-start',
+    gap: 16,
   },
   gridCardWrapper: {
-    width: '48.5%',
-    maxWidth: 240,
-    flexGrow: 1,
-    marginBottom: 10,
+    width: 155,
+    marginBottom: 12,
   },
 });

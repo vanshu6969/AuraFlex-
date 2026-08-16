@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
-
-
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Platform, Alert } from 'react-native';
 
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { MediaItem } from '../types/media';
 
-import { EMBED_SERVERS } from '../lib/mediaData';
+import { EMBED_SERVERS, isKdramaOrCdrama, isPunjabiMedia, isAnimeMedia } from '../lib/mediaData';
 import { storageService } from '../lib/storage';
 import { tmdbService } from '../lib/tmdb';
+import { ReportRequestModal } from './ReportRequestModal';
 
 interface MobilePlayerProps {
   media: MediaItem;
@@ -39,9 +38,24 @@ const adBlockScript = `
   true;
 `;
 
-
 export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
-  const [activeServerId, setActiveServerId] = useState(EMBED_SERVERS[0].id);
+  const isPunjabi = isPunjabiMedia(media);
+  const isKdrama = isKdramaOrCdrama(media);
+  const isAnime = isAnimeMedia(media);
+  const isSeries = media.media_type === 'tv' || (media.media_type === 'anime' && (media.episodes_count || 0) > 1);
+
+  const availableServers = isPunjabi
+    ? EMBED_SERVERS.filter((s) => s.id === 'flmu')
+    : isKdrama
+    ? EMBED_SERVERS.filter((s) => s.id === 'nontongo')
+    : isAnime
+    ? EMBED_SERVERS.filter((s) => s.id === 'anime' || s.id === 'videasy' || s.id === 'embedmaster')
+    : EMBED_SERVERS.filter((s) => s.id !== 'nontongo' && s.id !== 'anime');
+
+  const [activeServerId, setActiveServerId] = useState(() =>
+    isPunjabi ? 'flmu' : isKdrama ? 'nontongo' : isAnime ? 'anime' : EMBED_SERVERS[0].id
+  );
+
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
   const [seasons, setSeasons] = useState<Array<{ season_number: number; episode_count: number; name: string }>>([
@@ -54,17 +68,75 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
+  const [showAdShield, setShowAdShield] = useState(true);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [anilistId, setAnilistId] = useState<number | null>(null);
 
-  const currentServer = EMBED_SERVERS.find((s) => s.id === activeServerId) || EMBED_SERVERS[0];
-  const embedUrl = currentServer.getUrl(media.media_type, media.id, season, episode);
+  useEffect(() => {
+    if (media.title) {
+      tmdbService.getAniListId(media.title).then((id) => {
+        if (id) setAnilistId(id);
+      });
+    }
+  }, [media.title]);
+
+  const currentServer = EMBED_SERVERS.find((s) => s.id === activeServerId) || availableServers[0] || EMBED_SERVERS[0];
+  const embedUrl = currentServer.getUrl(media.media_type, media.id, season, episode, anilistId);
+
+  useEffect(() => {
+    setLoading(true);
+    setShowAdShield(true);
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1800);
+    return () => clearTimeout(timer);
+  }, [embedUrl]);
+
+  const handleShieldClick = (e?: any) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (e && e.stopPropagation) e.stopPropagation();
+    setShowAdShield(false);
+    setTimeout(() => {
+      setShowAdShield(true);
+    }, 2500);
+  };
+
+  useEffect(() => {
+    if (isPunjabi) {
+      setActiveServerId('flmu');
+    } else if (isKdrama) {
+      setActiveServerId('nontongo');
+    } else if (isAnime) {
+      setActiveServerId('anime');
+    } else {
+      setActiveServerId(EMBED_SERVERS[0].id);
+    }
+  }, [media, isPunjabi, isKdrama, isAnime]);
 
   useEffect(() => {
     storageService.isInWatchlist(media.id).then(setIsInWatchlist);
-    storageService.saveProgress(media, 120, 7200, season, episode);
+
+    // Initialize watch progress
+    storageService.getContinueWatching().then((list) => {
+      const existing = list.find((item) => String(item.mediaId) === String(media.id));
+      const initialTime = existing ? existing.currentTime : 180;
+      storageService.saveProgress(media, initialTime, 7200, season, episode);
+    });
+
+    const timer = setInterval(() => {
+      storageService.getContinueWatching().then((list) => {
+        const existing = list.find((item) => String(item.mediaId) === String(media.id));
+        const prevTime = existing ? existing.currentTime : 180;
+        const newTime = Math.min(7200, prevTime + 15);
+        storageService.saveProgress(media, newTime, 7200, season, episode);
+      });
+    }, 15000);
+
+    return () => clearInterval(timer);
   }, [media, season, episode]);
 
   useEffect(() => {
-    if (media.media_type === 'tv') {
+    if (isSeries) {
       tmdbService.getTVShowDetails(media.id).then((showData) => {
         if (showData?.seasons && Array.isArray(showData.seasons)) {
           const validSeasons = showData.seasons.filter((s: any) => s.season_number > 0);
@@ -74,15 +146,10 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
         }
       });
     }
-  }, [media.id, media.media_type]);
+  }, [media.id, media.media_type, isSeries]);
 
   useEffect(() => {
-    if (media.media_type === 'anime') {
-      const epCount = media.episodes_count || 12;
-      setEpisodes(
-        Array.from({ length: epCount }).map((_, i) => ({ episode_number: i + 1, name: `Episode ${i + 1}` }))
-      );
-    } else if (media.media_type === 'tv') {
+    if (isSeries) {
       setLoadingEpisodes(true);
       tmdbService.getTVSeasonDetails(media.id, season).then((seasonData) => {
         setLoadingEpisodes(false);
@@ -97,8 +164,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
         }
       });
     }
-  }, [media.id, media.media_type, media.episodes_count, season]);
-
+  }, [media.id, media.media_type, isSeries, season]);
 
   const handleServerSwitch = (serverId: string) => {
     setActiveServerId(serverId);
@@ -114,30 +180,6 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
     setHasError(false);
   };
 
-  const toggleFullscreen = async () => {
-    try {
-      if (typeof document !== 'undefined') {
-        if (!document.fullscreenElement && document.documentElement) {
-          await document.documentElement.requestFullscreen();
-          if ('screen' in window && 'orientation' in screen && 'lock' in (screen as any).orientation) {
-            await (screen as any).orientation.lock('landscape').catch(() => {});
-          }
-        } else if (document.fullscreenElement) {
-          await document.exitFullscreen();
-          if ('screen' in window && 'orientation' in screen && 'unlock' in (screen as any).orientation) {
-            try {
-              (screen as any).orientation.unlock();
-            } catch (e) {}
-          }
-        }
-      }
-    } catch (err) {
-      console.warn('Fullscreen request skipped or not allowed:', err);
-    }
-  };
-
-
-
   const toggleWatchlist = async () => {
     if (isInWatchlist) {
       await storageService.removeFromWatchlist(media.id);
@@ -148,35 +190,43 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
     }
   };
 
-
   return (
     <View style={styles.container}>
       {/* Header Info */}
       <View style={styles.headerBar}>
         <View style={{ flex: 1 }}>
           <Text style={styles.title} numberOfLines={1}>
-            {media.title}
+            {media.title} {isSeries ? `• S${season} E${episode}` : ''}
           </Text>
           <Text style={styles.subtitle}>
             {media.genres.join(' • ')} | {media.quality || 'HD'}
           </Text>
         </View>
-        <TouchableOpacity
-          onPress={toggleWatchlist}
-          style={[styles.bookmarkBtn, isInWatchlist && styles.bookmarkActive]}
-        >
-          <Ionicons
-            name={isInWatchlist ? 'bookmark' : 'bookmark-outline'}
-            size={18}
-            color={isInWatchlist ? '#10b981' : '#ffffff'}
-          />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          <TouchableOpacity
+            onPress={() => setShowReportModal(true)}
+            style={styles.actionBtnHeader}
+            title="Report Broken Video"
+          >
+            <Ionicons name="flag-outline" size={16} color="#ef4444" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={toggleWatchlist}
+            style={[styles.bookmarkBtn, isInWatchlist && styles.bookmarkActive]}
+          >
+            <Ionicons
+              name={isInWatchlist ? 'bookmark' : 'bookmark-outline'}
+              size={18}
+              color={isInWatchlist ? '#10b981' : '#ffffff'}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Multi-Server Selector Chips */}
       <View style={styles.serverRow}>
         <Text style={styles.serverLabel}>SERVERS:</Text>
-        {EMBED_SERVERS.map((server) => {
+        {availableServers.map((server) => {
           const isActive = server.id === activeServerId;
           return (
             <TouchableOpacity
@@ -190,6 +240,14 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
             </TouchableOpacity>
           );
         })}
+        <TouchableOpacity
+          onPress={() => Alert.alert('More Providers', '🚀 Coming Soon! Additional 4K Premium Providers will be unlocked in the next update.')}
+          style={[styles.serverChip, { backgroundColor: 'rgba(229, 9, 20, 0.15)', borderColor: 'rgba(229, 9, 20, 0.4)' }]}
+        >
+          <Text style={[styles.serverChipText, { color: '#e50914', fontWeight: '800' }]}>
+            + More Providers
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Embedded Fullscreen Video Player Container */}
@@ -199,12 +257,18 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
             <Ionicons name="warning-outline" size={40} color="#e50914" />
             <Text style={styles.errorTitle}>Playback Error</Text>
             <Text style={styles.errorSubtitle}>
-              Server ({currentServer.name}) unavailable. Try fallback mirror.
+              Server ({currentServer.name}) unavailable. Try fallback mirror or report broken link.
             </Text>
-            <TouchableOpacity onPress={triggerAutoFallback} style={styles.fallbackButton}>
-              <Ionicons name="refresh" size={16} color="#ffffff" />
-              <Text style={styles.fallbackText}>Switch Server</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+              <TouchableOpacity onPress={triggerAutoFallback} style={styles.fallbackButton}>
+                <Ionicons name="refresh" size={16} color="#ffffff" />
+                <Text style={styles.fallbackText}>Switch Server</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowReportModal(true)} style={[styles.fallbackButton, { backgroundColor: '#374151' }]}>
+                <Ionicons name="flag" size={16} color="#ef4444" />
+                <Text style={styles.fallbackText}>Report</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         ) : (
           <>
@@ -216,36 +280,38 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
             )}
 
             {Platform.OS === 'web' ? (
-
-              <iframe
-                key={embedUrl}
-                src={embedUrl}
-                style={{ width: '100%', height: '100%', border: 0, pointerEvents: 'auto' }}
-                allowFullScreen={true}
-                allow="autoplay; fullscreen *; picture-in-picture; encrypted-media; gyroscope; accelerometer"
-                {...({ webkitallowfullscreen: 'true', mozallowfullscreen: 'true' } as any)}
-                referrerPolicy="no-referrer"
-                onLoad={() => setLoading(false)}
-                onError={() => {
-                  setLoading(false);
-                  setHasError(true);
-                }}
-              />
-
-
-
-
-
-
-
-
-
-
-
-
-
+              <View style={{ flex: 1, width: '100%', height: '100%', position: 'relative' }}>
+                {showAdShield && (
+                  <TouchableOpacity
+                    activeOpacity={1}
+                    onPress={handleShieldClick}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      zIndex: 10,
+                      backgroundColor: 'rgba(0, 0, 0, 0.01)',
+                    }}
+                  />
+                )}
+                <iframe
+                  key={embedUrl}
+                  src={embedUrl}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    border: 'none',
+                    backgroundColor: '#000',
+                  }}
+                  allowFullScreen={true}
+                  allow="autoplay; fullscreen *; picture-in-picture; encrypted-media"
+                />
+              </View>
             ) : (
               <WebView
+                key={embedUrl}
                 source={{ uri: embedUrl }}
                 style={styles.webview}
                 injectedJavaScript={adBlockScript}
@@ -261,14 +327,12 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
                 allowsInlineMediaPlayback
               />
             )}
-
-
           </>
         )}
       </View>
 
-      {/* TV Series / Anime Season & Episode Selection */}
-      {(media.media_type === 'tv' || media.media_type === 'anime') && (
+      {/* TV Series / Anime Series Season & Episode Selection */}
+      {isSeries && (
         <View style={styles.tvSection}>
           <View style={styles.tvHeader}>
             <Text style={styles.tvTitle}>EPISODES ({episodes.length})</Text>
@@ -280,6 +344,8 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
                   onPress={() => {
                     setSeason(s.season_number);
                     setEpisode(1);
+                    setHasError(false);
+                    setLoading(true);
                   }}
                   style={[styles.seasonChip, season === s.season_number && styles.seasonChipActive]}
                 >
@@ -319,6 +385,14 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
         </View>
       )}
 
+      {/* Report Broken Link Modal */}
+      <ReportRequestModal
+        visible={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        initialTab="report"
+        prefilledMediaTitle={media.title}
+        prefilledMediaId={String(media.id)}
+      />
     </View>
   );
 };
@@ -335,14 +409,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#18181f',
     padding: 12,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  headerBarRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
   },
   title: {
     color: '#ffffff',
@@ -352,31 +421,44 @@ const styles = StyleSheet.create({
   subtitle: {
     color: '#9ca3af',
     fontSize: 11,
+    fontWeight: '500',
     marginTop: 2,
   },
+  actionBtnHeader: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
   bookmarkBtn: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#0f0f12',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   bookmarkActive: {
     backgroundColor: 'rgba(16, 185, 129, 0.15)',
-  },
-  downloadBtn: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#e50914',
+    borderColor: 'rgba(16, 185, 129, 0.4)',
   },
   serverRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
+    flexWrap: 'wrap',
   },
   serverLabel: {
     color: '#9ca3af',
     fontSize: 10,
     fontWeight: '800',
-    marginRight: 4,
+    letterSpacing: 1,
   },
   serverChip: {
     paddingHorizontal: 12,
@@ -391,19 +473,18 @@ const styles = StyleSheet.create({
     borderColor: '#e50914',
   },
   serverChipText: {
-    color: '#d1d5db',
+    color: '#9ca3af',
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   serverChipTextActive: {
     color: '#ffffff',
-    fontWeight: '800',
   },
   playerContainer: {
     width: '100%',
     aspectRatio: 16 / 9,
     backgroundColor: '#000000',
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
@@ -415,22 +496,23 @@ const styles = StyleSheet.create({
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15, 15, 18, 0.9)',
-    alignItems: 'center',
+    backgroundColor: '#18181f',
     justifyContent: 'center',
-    zIndex: 10,
+    alignItems: 'center',
+    zIndex: 5,
     gap: 8,
   },
-
   loadingText: {
-    color: '#d1d5db',
+    color: '#9ca3af',
     fontSize: 12,
+    fontWeight: '600',
   },
   errorContainer: {
-    flex: 1,
-    alignItems: 'center',
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#18181f',
     justifyContent: 'center',
-    padding: 16,
+    alignItems: 'center',
+    padding: 20,
     gap: 8,
   },
   errorTitle: {
@@ -451,52 +533,55 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     gap: 6,
-    marginTop: 4,
   },
   fallbackText: {
     color: '#ffffff',
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   tvSection: {
     backgroundColor: '#18181f',
     padding: 12,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
     gap: 10,
   },
   tvHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 8,
   },
   tvTitle: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '800',
+    color: '#e50914',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
   seasonRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
+    flexWrap: 'wrap',
   },
   seasonLabel: {
     color: '#9ca3af',
-    fontSize: 10,
+    fontSize: 11,
+    fontWeight: '600',
   },
   seasonChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 6,
     backgroundColor: '#0f0f12',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   seasonChipActive: {
     backgroundColor: '#e50914',
+    borderColor: '#e50914',
   },
   seasonText: {
     color: '#9ca3af',
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
   },
   seasonTextActive: {
@@ -509,20 +594,20 @@ const styles = StyleSheet.create({
   },
   epChip: {
     width: '18%',
-    paddingVertical: 6,
-    alignItems: 'center',
+    paddingVertical: 8,
+    borderRadius: 8,
     backgroundColor: '#0f0f12',
-    borderRadius: 6,
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   epChipActive: {
     backgroundColor: '#e50914',
     borderColor: '#e50914',
   },
   epText: {
-    color: '#d1d5db',
-    fontSize: 10,
+    color: '#9ca3af',
+    fontSize: 11,
     fontWeight: '700',
   },
   epTextActive: {

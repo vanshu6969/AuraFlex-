@@ -30,7 +30,8 @@ export const storageService = {
         const { data, error } = await supabase
           .from('watchlist')
           .select('media_data')
-          .eq('user_id', user.id);
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
 
         if (!error && data) {
           return data.map((item) => item.media_data as MediaItem);
@@ -64,12 +65,15 @@ export const storageService = {
       const user = session?.session?.user;
 
       if (user) {
-        await supabase.from('watchlist').upsert({
-          user_id: user.id,
-          media_id: String(media.id),
-          media_data: media,
-          created_at: new Date().toISOString(),
-        });
+        await supabase.from('watchlist').upsert(
+          {
+            user_id: user.id,
+            media_id: String(media.id),
+            media_data: media,
+            created_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id,media_id' }
+        );
       }
     } catch {}
 
@@ -118,12 +122,20 @@ export const storageService = {
       if (user) {
         const { data, error } = await supabase
           .from('watch_progress')
-          .select('progress_data')
+          .select('media_id, media_data, played_time, duration, season, episode, updated_at')
           .eq('user_id', user.id)
           .order('updated_at', { ascending: false });
 
-        if (!error && data) {
-          return data.map((item) => item.progress_data as WatchProgress);
+        if (!error && data && data.length > 0) {
+          return data.map((row) => ({
+            mediaId: row.media_id,
+            media: row.media_data as MediaItem,
+            season: row.season || 1,
+            episode: row.episode || 1,
+            currentTime: Number(row.played_time || 0),
+            duration: Number(row.duration || 0),
+            updatedAt: new Date(row.updated_at).getTime(),
+          }));
         }
       }
     } catch {}
@@ -174,12 +186,19 @@ export const storageService = {
       const user = session?.session?.user;
 
       if (user) {
-        await supabase.from('watch_progress').upsert({
-          user_id: user.id,
-          media_id: String(media.id),
-          progress_data: progressItem,
-          updated_at: new Date().toISOString(),
-        });
+        await supabase.from('watch_progress').upsert(
+          {
+            user_id: user.id,
+            media_id: String(media.id),
+            media_data: media,
+            played_time: currentTime,
+            duration: duration,
+            season: season,
+            episode: episode,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id,media_id,season,episode' }
+        );
       }
     } catch {}
   },
@@ -205,5 +224,55 @@ export const storageService = {
 
     return true;
   },
-};
 
+  // Sync offline storage with Supabase upon login
+  async syncLocalToSupabase(): Promise<void> {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const user = session?.session?.user;
+      if (!user) return;
+
+      // Sync local watchlist
+      const rawWatchlist = await safeStorage.getItem(LOCAL_WATCHLIST_KEY);
+      if (rawWatchlist) {
+        const localItems: MediaItem[] = JSON.parse(rawWatchlist);
+        for (const item of localItems) {
+          await supabase.from('watchlist').upsert(
+            {
+              user_id: user.id,
+              media_id: String(item.id),
+              media_data: item,
+              created_at: new Date().toISOString(),
+            },
+            { onConflict: 'user_id,media_id' }
+          );
+        }
+      }
+
+      // Sync local watch progress
+      const rawProgress = await safeStorage.getItem(LOCAL_PROGRESS_KEY);
+      if (rawProgress) {
+        const localProgress: WatchProgress[] = JSON.parse(rawProgress);
+        for (const p of localProgress) {
+          await supabase.from('watch_progress').upsert(
+            {
+              user_id: user.id,
+              media_id: String(p.mediaId),
+              media_data: p.media,
+              played_time: p.currentTime,
+              duration: p.duration,
+              season: p.season,
+              episode: p.episode,
+              updated_at: new Date(p.updatedAt).toISOString(),
+            },
+            { onConflict: 'user_id,media_id,season,episode' }
+          );
+        }
+      }
+
+      notifyStorageChange();
+    } catch (e) {
+      console.warn('Sync local to Supabase failed:', e);
+    }
+  },
+};

@@ -1,5 +1,94 @@
 import { EmbedServer, MediaItem } from '../types/media';
 
+export const isKdramaOrCdrama = (item: MediaItem): boolean => {
+  if (!item) return false;
+
+  const originCountry = item.origin_country || [];
+  const origLang = (item.original_language || '').toLowerCase();
+
+  if (
+    origLang === 'ko' ||
+    origLang === 'zh' ||
+    origLang === 'cn' ||
+    originCountry.includes('KR') ||
+    originCountry.includes('CN') ||
+    originCountry.includes('TW') ||
+    originCountry.includes('HK')
+  ) {
+    return true;
+  }
+
+  const genres = item.genres || [];
+  const lowerGenres = genres.map((g) => g.toLowerCase());
+  const titleLower = (item.title || '').toLowerCase();
+
+  return (
+    lowerGenres.some(
+      (g) =>
+        g.includes('kdrama') ||
+        g.includes('k-drama') ||
+        g.includes('cdrama') ||
+        g.includes('c-drama') ||
+        g.includes('korean') ||
+        g.includes('chinese') ||
+        g.includes('asian')
+    ) ||
+    titleLower.includes('kdrama') ||
+    titleLower.includes('cdrama') ||
+    titleLower.includes('queen of tears') ||
+    titleLower.includes('dear x') ||
+    titleLower.includes('our sticky love') ||
+    (item.original_title ? /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af]/.test(item.original_title) : false)
+  );
+};
+
+export const isPunjabiMedia = (item: MediaItem): boolean => {
+  if (!item) return false;
+
+  const origLang = (item.original_language || '').toLowerCase();
+  if (origLang === 'pa' || origLang === 'pan') {
+    return true;
+  }
+
+  const genres = item.genres || [];
+  const lowerGenres = genres.map((g) => g.toLowerCase());
+  const titleLower = (item.title || '').toLowerCase();
+  const overviewLower = (item.overview || '').toLowerCase();
+
+  return (
+    lowerGenres.some((g) => g.includes('punjabi')) ||
+    titleLower.includes('punjabi') ||
+    overviewLower.includes('punjabi')
+  );
+};
+
+export const isAnimeMedia = (item: MediaItem): boolean => {
+  if (!item) return false;
+  if (item.media_type === 'anime') return true;
+
+  const origLang = (item.original_language || '').toLowerCase();
+  const originCountry = item.origin_country || [];
+  const genres = (item.genres || []).map((g) => g.toLowerCase());
+  const titleLower = (item.title || '').toLowerCase();
+
+  const isAnimation = genres.some((g) => g.includes('animation') || g.includes('anime'));
+  const isJapanese = origLang === 'ja' || originCountry.includes('JP');
+
+  return (
+    (isAnimation && isJapanese) ||
+    genres.includes('anime') ||
+    titleLower.includes('daemons of the shadow realm') ||
+    titleLower.includes('solo leveling') ||
+    titleLower.includes('jujutsu kaisen') ||
+    titleLower.includes('demon slayer') ||
+    titleLower.includes('naruto') ||
+    titleLower.includes('one piece') ||
+    titleLower.includes('bleach') ||
+    titleLower.includes('attack on titan')
+  );
+};
+
+const SUB_FLAGS = 'sub=en&sub_lang=en&ds_lang=en&subtitles=1&cc_load_policy=1&auto_sub=1';
 
 export const EMBED_SERVERS: EmbedServer[] = [
   {
@@ -7,38 +96,46 @@ export const EMBED_SERVERS: EmbedServer[] = [
     name: 'HD',
     badge: 'HD Server',
     getUrl: (type, id, season = 1, episode = 1) =>
-      type === 'anime'
-        ? `https://player.videasy.net/anime/${id}/${episode}?sub=en`
-        : type === 'tv'
-        ? `https://player.videasy.net/tv/${id}/${season}/${episode}?sub=en`
-        : `https://player.videasy.net/movie/${id}?sub=en`,
+      type === 'tv' || type === 'anime'
+        ? `https://player.videasy.net/tv/${id}/${season}/${episode}?${SUB_FLAGS}`
+        : `https://player.videasy.net/movie/${id}?${SUB_FLAGS}`,
   },
   {
     id: 'embedmaster',
     name: 'English',
     badge: 'English Server',
     getUrl: (type, id, season = 1, episode = 1) =>
-      type === 'anime'
-        ? `https://embedmaster.link/anime/${id}/${episode}`
-        : type === 'tv'
-        ? `https://embedmaster.link/tv/${id}/${season}/${episode}?ds_lang=en`
-        : `https://embedmaster.link/movie/${id}?ds_lang=en`,
+      type === 'anime' || type === 'tv'
+        ? `https://embedmaster.link/tv/${id}/${season}/${episode}?${SUB_FLAGS}`
+        : `https://embedmaster.link/movie/${id}?${SUB_FLAGS}`,
   },
   {
     id: 'flmu',
     name: 'Indian',
     badge: 'Indian Server',
     getUrl: (type, id, season = 1, episode = 1) =>
-      type === 'anime'
-        ? `https://embed.filmu.in/anime/${id}/${episode}`
-        : type === 'tv'
-        ? `https://embed.filmu.in/tv/${id}/${season}/${episode}`
-        : `https://embed.filmu.in/movie/${id}`,
+      type === 'anime' || type === 'tv'
+        ? `https://embed.filmu.in/tv/${id}/${season}/${episode}?${SUB_FLAGS}`
+        : `https://embed.filmu.in/movie/${id}?${SUB_FLAGS}`,
   },
-
-
-
-
+  {
+    id: 'anime',
+    name: 'Anime',
+    badge: 'Anime Server (HD)',
+    getUrl: (type, id, season = 1, episode = 1) =>
+      type === 'movie'
+        ? `https://player.videasy.net/movie/${id}?${SUB_FLAGS}`
+        : `https://player.videasy.net/tv/${id}/${season}/${episode}?${SUB_FLAGS}`,
+  },
+  {
+    id: 'nontongo',
+    name: 'KDrama',
+    badge: 'KDrama & CDrama Server',
+    getUrl: (type, id, season = 1, episode = 1) =>
+      type === 'tv' || type === 'anime'
+        ? `https://www.nontongo.win/embed/tv/${id}/${season}/${episode}?${SUB_FLAGS}`
+        : `https://www.nontongo.win/embed/movie/${id}?${SUB_FLAGS}`,
+  },
 ];
 
 export const MOCK_MEDIA_ITEMS: MediaItem[] = [
@@ -104,7 +201,7 @@ export const MOCK_MEDIA_ITEMS: MediaItem[] = [
     release_date: '2014-11-05',
     vote_average: 8.7,
     genres: ['Sci-Fi', 'Drama', 'Adventure'],
-    duration: '2h 49m',
+    duration: '2h 29m',
     quality: '4K Ultra HD',
   },
 ];

@@ -1,49 +1,76 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Server, AlertTriangle, RefreshCw, Bookmark, Check, ShieldAlert, Tv } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Server, AlertTriangle, RefreshCw, Bookmark, Check, ShieldAlert, Tv, Play } from 'lucide-react';
 import { MediaItem } from '../../types/media';
 import { storageService } from '../../lib/storage';
 import { tmdbService } from '../../lib/tmdb';
+import { isKdramaOrCdrama, isPunjabiMedia, isAnimeMedia } from '../../lib/mediaData';
+import { kisskhService } from '../../lib/kisskh';
 
 export interface ServerOption {
   id: string;
   name: string;
   badge: string;
-  getUrl: (type: 'movie' | 'tv', id: string | number, season: number, episode: number) => string;
+  getUrl: (type: 'movie' | 'tv' | 'anime', id: string | number, season?: number, episode?: number, anilistId?: number | null) => string;
 }
+
+const SUB_FLAGS = 'sub=en&sub_lang=en&ds_lang=en&subtitles=1&cc_load_policy=1&auto_sub=1&sub_auto=1&default_sub=en&caption=en';
 
 export const SERVERS: ServerOption[] = [
   {
     id: 'videasy',
-    name: 'Videasy',
+    name: 'HD',
     badge: 'Server 1 (Primary HD)',
     getUrl: (type, id, season = 1, episode = 1) =>
-      type === 'tv'
-        ? `https://player.videasy.net/tv/${id}/${season}/${episode}?sub=en`
-        : `https://player.videasy.net/movie/${id}?sub=en`,
+      type === 'tv' || type === 'anime'
+        ? `https://player.videasy.net/tv/${id}/${season}/${episode}?${SUB_FLAGS}`
+        : `https://player.videasy.net/movie/${id}?${SUB_FLAGS}`,
   },
   {
     id: 'embedmaster',
-    name: 'Embed Master',
+    name: 'English',
     badge: 'Server 2 (Fast Mirror)',
     getUrl: (type, id, season = 1, episode = 1) =>
-      type === 'tv'
-        ? `https://embedmaster.link/tv/${id}/${season}/${episode}?ds_lang=en`
-        : `https://embedmaster.link/movie/${id}?ds_lang=en`,
+      type === 'tv' || type === 'anime'
+        ? `https://embedmaster.link/tv/${id}/${season}/${episode}?${SUB_FLAGS}`
+        : `https://embedmaster.link/movie/${id}?${SUB_FLAGS}`,
   },
   {
     id: 'flmu',
-    name: 'embed.filmu.in',
+    name: 'Indian',
     badge: 'Server 3 (Multi-Audio)',
     getUrl: (type, id, season = 1, episode = 1) =>
-      type === 'tv'
-        ? `https://embed.filmu.in/tv/${id}/${season}/${episode}`
-        : `https://embed.filmu.in/movie/${id}`,
+      type === 'tv' || type === 'anime'
+        ? `https://embed.filmu.in/tv/${id}/${season}/${episode}?${SUB_FLAGS}`
+        : `https://embed.filmu.in/movie/${id}?${SUB_FLAGS}`,
   },
-
+  {
+    id: 'anime',
+    name: 'Anime',
+    badge: 'Anime Server',
+    getUrl: (type, id, season = 1, episode = 1, anilistId?: number | null) =>
+      anilistId
+        ? `https://embed.filmu.in/anime/${anilistId}/${episode}?${SUB_FLAGS}`
+        : `https://embed.filmu.in/tv/${id}/${season}/${episode}?${SUB_FLAGS}`,
+  },
+  {
+    id: 'nontongo',
+    name: 'KDrama',
+    badge: 'KDrama & CDrama Server',
+    getUrl: (type, id, season = 1, episode = 1) =>
+      type === 'tv' || type === 'anime'
+        ? `https://www.nontongo.win/embed/tv/${id}/${season}/${episode}?${SUB_FLAGS}`
+        : `https://www.nontongo.win/embed/movie/${id}?${SUB_FLAGS}`,
+  },
+  {
+    id: 'kisskh',
+    name: 'KissKH',
+    badge: 'KissKH Asian Server',
+    getUrl: (type, id, season = 1, episode = 1) =>
+      `https://kisskh.co/ExternalEmbed?id=${id}&sub=en`,
+  },
 ];
-
 
 interface VideoPlayerProps {
   media: MediaItem;
@@ -56,7 +83,56 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   initialSeason = 1,
   initialEpisode = 1,
 }) => {
-  const [activeServerIndex, setActiveServerIndex] = useState(0);
+  const isPunjabi = isPunjabiMedia(media);
+  const isKdrama = isKdramaOrCdrama(media);
+  const isAnime = isAnimeMedia(media);
+  const isSeries = media.media_type === 'tv' || (media.media_type === 'anime' && (media.episodes_count || 0) > 1);
+
+  const [anilistId, setAnilistId] = useState<number | null>(null);
+  const [kisskhEmbedUrl, setKisskhEmbedUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (media.title) {
+      tmdbService.getAniListId(media.title).then((id) => {
+        if (id) setAnilistId(id);
+      });
+    }
+  }, [media.title]);
+
+  useEffect(() => {
+    if (isKdrama && media.title) {
+      kisskhService.getKissKHEmbedUrl(media.title, initialEpisode).then((url) => {
+        if (url) setKisskhEmbedUrl(url);
+      });
+    }
+  }, [isKdrama, media.title, initialEpisode]);
+
+  const availableServers = isPunjabi
+    ? SERVERS.filter((s) => s.id === 'flmu')
+    : isKdrama
+    ? SERVERS.filter((s) => s.id === 'nontongo' || s.id === 'kisskh')
+    : isAnime
+    ? SERVERS.filter((s) => s.id === 'anime')
+    : SERVERS.filter((s) => s.id !== 'nontongo' && s.id !== 'anime' && s.id !== 'kisskh');
+
+  const [activeServerIndex, setActiveServerIndex] = useState(() => {
+    if (isPunjabi) {
+      const idx = SERVERS.findIndex((s) => s.id === 'flmu');
+      if (idx !== -1) return idx;
+    }
+    if (isKdrama) {
+      const idx = SERVERS.findIndex((s) => s.id === 'kisskh');
+      if (idx !== -1 && kisskhEmbedUrl) return idx;
+      const nontongoIdx = SERVERS.findIndex((s) => s.id === 'nontongo');
+      if (nontongoIdx !== -1) return nontongoIdx;
+    }
+    if (isAnime) {
+      const idx = SERVERS.findIndex((s) => s.id === 'anime');
+      if (idx !== -1) return idx;
+    }
+    return 0;
+  });
+
   const [season, setSeason] = useState(initialSeason);
   const [episode, setEpisode] = useState(initialEpisode);
   const [seasons, setSeasons] = useState<Array<{ season_number: number; episode_count: number; name: string }>>([
@@ -69,9 +145,106 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [hasError, setHasError] = useState(false);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showAdShield, setShowAdShield] = useState(true);
 
-  const currentServer = SERVERS[activeServerIndex] || SERVERS[0];
-  const embedUrl = currentServer.getUrl(media.media_type, media.id, season, episode);
+  const getAbsoluteEpisodeNumber = (seasonNum: number, epNum: number) => {
+    if (seasonNum <= 1) return epNum;
+    let totalPrev = 0;
+    for (const s of seasons) {
+      if (s.season_number > 0 && s.season_number < seasonNum) {
+        totalPrev += s.episode_count || 0;
+      }
+    }
+    return totalPrev + epNum;
+  };
+
+  useEffect(() => {
+    if (isKdrama && media.title) {
+      kisskhService.getKissKHEmbedUrl(media.title, episode).then((url) => {
+        if (url) setKisskhEmbedUrl(url);
+      });
+    }
+  }, [isKdrama, media.title, episode]);
+
+  useEffect(() => {
+    if (isPunjabi) {
+      const idx = SERVERS.findIndex((s) => s.id === 'flmu');
+      if (idx !== -1) {
+        setActiveServerIndex(idx);
+      }
+    } else if (isKdrama) {
+      if (kisskhEmbedUrl) {
+        const kissIdx = SERVERS.findIndex((s) => s.id === 'kisskh');
+        if (kissIdx !== -1) setActiveServerIndex(kissIdx);
+      } else {
+        const idx = SERVERS.findIndex((s) => s.id === 'nontongo');
+        if (idx !== -1) setActiveServerIndex(idx);
+      }
+    } else if (isAnime) {
+      const idx = SERVERS.findIndex((s) => s.id === 'anime');
+      if (idx !== -1) {
+        setActiveServerIndex(idx);
+      }
+    } else {
+      setActiveServerIndex(0);
+    }
+  }, [media, isPunjabi, isKdrama, isAnime, kisskhEmbedUrl]);
+
+  const currentServer = SERVERS[activeServerIndex] || availableServers[0] || SERVERS[0];
+  const episodeToPass = currentServer.id === 'anime' && isSeries && anilistId
+    ? getAbsoluteEpisodeNumber(season, episode)
+    : episode;
+
+  const embedUrl =
+    currentServer.id === 'kisskh' && kisskhEmbedUrl
+      ? kisskhEmbedUrl
+      : currentServer.getUrl(media.media_type, media.id, season, episodeToPass, anilistId);
+
+  useEffect(() => {
+    setShowAdShield(true);
+  }, [embedUrl]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const originalOpen = window.open;
+      window.open = function (url, target, features) {
+        console.warn('Blocked popup ad call:', url);
+        return null;
+      };
+
+      const handleBlur = () => {
+        setTimeout(() => {
+          try {
+            window.focus();
+          } catch (e) {}
+        }, 10);
+      };
+
+      const handleGlobalClick = (e: MouseEvent) => {
+        const path = e.composedPath ? e.composedPath() : [];
+        for (const el of path) {
+          if (el instanceof HTMLAnchorElement && el.target === '_blank') {
+            const href = el.href || '';
+            if (!href.includes(window.location.hostname)) {
+              e.preventDefault();
+              e.stopPropagation();
+              console.warn('Blocked external link popup:', href);
+              return false;
+            }
+          }
+        }
+      };
+
+      window.addEventListener('blur', handleBlur);
+      window.addEventListener('click', handleGlobalClick, true);
+
+      return () => {
+        window.open = originalOpen;
+        window.removeEventListener('blur', handleBlur);
+        window.removeEventListener('click', handleGlobalClick, true);
+      };
+    }
+  }, []);
 
   useEffect(() => {
     storageService.isInWatchlist(media.id).then(setIsInWatchlist);
@@ -79,7 +252,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }, [media, season, episode]);
 
   useEffect(() => {
-    if (media.media_type === 'tv') {
+    if (isSeries) {
       tmdbService.getTVShowDetails(media.id).then((showData) => {
         if (showData?.seasons && Array.isArray(showData.seasons)) {
           const validSeasons = showData.seasons.filter((s: any) => s.season_number > 0);
@@ -89,10 +262,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         }
       });
     }
-  }, [media.id, media.media_type]);
+  }, [media.id, media.media_type, isSeries]);
 
   useEffect(() => {
-    if (media.media_type === 'tv') {
+    if (isSeries) {
       setLoadingEpisodes(true);
       tmdbService.getTVSeasonDetails(media.id, season).then((seasonData) => {
         setLoadingEpisodes(false);
@@ -107,7 +280,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         }
       });
     }
-  }, [media.id, media.media_type, season]);
+  }, [media.id, media.media_type, season, isSeries]);
 
   const handleServerSwitch = (index: number) => {
     setActiveServerIndex(index);
@@ -116,35 +289,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const triggerAutoFallback = () => {
-    const nextIndex = (activeServerIndex + 1) % SERVERS.length;
-    setActiveServerIndex(nextIndex);
+    const nextIndex = (activeServerIndex + 1) % availableServers.length;
+    const realIndex = SERVERS.findIndex((s) => s.id === availableServers[nextIndex].id);
+    setActiveServerIndex(realIndex !== -1 ? realIndex : 0);
     setHasError(false);
     setIsLoading(true);
   };
 
-  const playerRef = React.useRef<HTMLDivElement>(null);
-
-  const toggleFullscreen = async () => {
-    try {
-      if (!document.fullscreenElement && playerRef.current) {
-        await playerRef.current.requestFullscreen();
-        if (typeof window !== 'undefined' && 'screen' in window && 'orientation' in screen && 'lock' in (screen as any).orientation) {
-          await (screen as any).orientation.lock('landscape').catch(() => {});
-        }
-      } else if (document.fullscreenElement) {
-        await document.exitFullscreen();
-        if (typeof window !== 'undefined' && 'screen' in window && 'orientation' in screen && 'unlock' in (screen as any).orientation) {
-          try {
-            (screen as any).orientation.unlock();
-          } catch (e) {}
-        }
-      }
-    } catch (err) {
-      console.warn('Fullscreen request skipped or not allowed:', err);
-    }
-  };
-
-
+  const playerRef = useRef<HTMLDivElement>(null);
 
   const toggleWatchlist = async () => {
     if (isInWatchlist) {
@@ -156,6 +308,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   };
 
+  const handleShieldClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowAdShield(false);
+    setTimeout(() => {
+      setShowAdShield(true);
+    }, 4000);
+  };
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-4">
@@ -164,7 +324,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         <div>
           <h1 className="text-lg sm:text-2xl font-black text-white flex items-center gap-2 tracking-wide">
             {media.title}
-            {media.media_type === 'tv' && (
+            {isSeries && (
               <span className="text-xs font-bold text-primary bg-primary/20 border border-primary/40 px-2.5 py-0.5 rounded-full">
                 S{season} E{episode}
               </span>
@@ -185,7 +345,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {SERVERS.map((server, idx) => {
+            {availableServers.map((server) => {
+              const idx = SERVERS.findIndex((s) => s.id === server.id);
               const isActive = idx === activeServerIndex;
               return (
                 <button
@@ -218,9 +379,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       </div>
 
-      {/* Responsive Iframe Video Player Container with Sandbox & Ad Mitigation */}
+      {/* Responsive Iframe Video Player Container */}
       <div ref={playerRef} className="relative aspect-video w-full rounded-2xl overflow-hidden bg-black border border-white/10 shadow-2xl">
-
         {hasError ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-[#18181f]/95 space-y-4 z-20">
             <AlertTriangle className="w-12 h-12 text-primary animate-bounce" />
@@ -240,14 +400,22 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </div>
         ) : (
           <>
+            {showAdShield && (
+              <div
+                onClick={handleShieldClick}
+                className="absolute inset-0 z-10 bg-black/10 flex flex-col items-center justify-center cursor-pointer group transition-all duration-200"
+                style={{ background: 'rgba(0, 0, 0, 0.01)' }}
+                title="Click to Start Video Playback"
+              />
+            )}
+
             <iframe
               key={embedUrl}
               src={embedUrl}
               className="w-full h-full border-0 rounded-xl bg-black pointer-events-auto"
               allowFullScreen={true}
-              allow="autoplay; fullscreen *; picture-in-picture; encrypted-media; gyroscope; accelerometer"
+              allow="autoplay; fullscreen *; picture-in-picture; encrypted-media"
               {...({ webkitallowfullscreen: 'true', mozallowfullscreen: 'true' } as any)}
-              referrerPolicy="no-referrer"
               onLoad={() => setIsLoading(false)}
               onError={() => {
                 setIsLoading(false);
@@ -258,18 +426,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         )}
       </div>
 
-
-
-
-
-
-
-
-
-
-
-      {/* TV Series Season & Episode Controls */}
-      {media.media_type === 'tv' && (
+      {/* TV Series & Anime Series Season & Episode Controls (Hidden for Movies) */}
+      {isSeries && (
         <div className="bg-[#18181f] p-4 rounded-2xl border border-white/10 space-y-3">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-white/5 pb-3">
             <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
@@ -326,7 +484,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           )}
         </div>
       )}
-
     </div>
   );
 };
+
+export default VideoPlayer;

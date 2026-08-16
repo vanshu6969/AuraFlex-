@@ -1,79 +1,90 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet } from 'react-native';
 
-import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { MobileHeroBanner } from '../../components/MobileHeroBanner';
 import { MobileMediaGrid } from '../../components/MobileMediaGrid';
-import { MOCK_MEDIA_ITEMS } from '../../lib/mediaData';
 import { tmdbService } from '../../lib/tmdb';
 import { storageService, subscribeStorage } from '../../lib/storage';
 import { MediaItem, WatchProgress } from '../../types/media';
-
+import { useTheme } from '../../lib/themeContext';
 
 export default function HomeScreen() {
+  const [featured, setFeatured] = useState<MediaItem | null>(null);
   const [continueWatching, setContinueWatching] = useState<WatchProgress[]>([]);
-  const [trending, setTrending] = useState<MediaItem[]>(MOCK_MEDIA_ITEMS);
+  const [trending, setTrending] = useState<MediaItem[]>([]);
   const [popularMovies, setPopularMovies] = useState<MediaItem[]>([]);
   const [topTVShows, setTopTVShows] = useState<MediaItem[]>([]);
   const [recentlyAdded, setRecentlyAdded] = useState<MediaItem[]>([]);
+  const { colors } = useTheme();
+
+  const loadData = async () => {
+    try {
+      const items = await storageService.getContinueWatching();
+      setContinueWatching(items);
+
+      const trendingData = await tmdbService.getTrending();
+      setTrending(trendingData);
+
+      if (trendingData.length > 0) {
+        setFeatured(trendingData[0]);
+      }
+
+      const movies = await tmdbService.getPopularMovies();
+      setPopularMovies(movies);
+
+      const tv = await tmdbService.getTopTVShows();
+      setTopTVShows(tv);
+
+      setRecentlyAdded([...trendingData].reverse().slice(0, 8));
+    } catch (e) {
+      console.error('Home load error:', e);
+    }
+  };
 
   useEffect(() => {
-    storageService.getContinueWatching().then(setContinueWatching);
-    const unsubscribe = subscribeStorage(() => {
-      storageService.getContinueWatching().then(setContinueWatching);
-    });
-
-    tmdbService.getTrending().then(setTrending);
-    tmdbService.getPopularMovies().then(setPopularMovies);
-    tmdbService.getTopTVShows().then(setTopTVShows);
-    tmdbService.getRecentlyAdded().then(setRecentlyAdded);
-
-    return unsubscribe;
+    loadData();
+    const unsubscribe = subscribeStorage(loadData);
+    return () => unsubscribe();
   }, []);
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Hero Carousel */}
-      <MobileHeroBanner items={trending} />
+    <ScrollView style={[styles.container, { backgroundColor: colors.bg }]} showsVerticalScrollIndicator={false}>
+      {/* Featured Hero Banner */}
+      {(trending.length > 0 || featured) && (
+        <MobileHeroBanner items={trending.length > 0 ? trending : (featured ? [featured] : [])} />
+      )}
 
-      {/* Continue Watching */}
+      {/* Continue Watching Section (No Progress Bar / % Text) */}
       {continueWatching.length > 0 && (
         <View style={styles.continueSection}>
           <View style={styles.sectionHeader}>
             <Ionicons name="time-outline" size={18} color="#e50914" />
-            <Text style={styles.sectionTitle}>Continue Watching</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Continue Watching</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.continueList}>
             {continueWatching.map((item) => (
               <TouchableOpacity
                 key={item.mediaId}
                 activeOpacity={0.8}
-                onPress={() => router.push(`/watch/${item.media.media_type}/${item.media.id}`)}
-                style={styles.continueCard}
+                onPress={() => router.push(`/watch/${item.media?.media_type || 'movie'}/${item.media?.id}`)}
+                style={[styles.continueCard, { backgroundColor: colors.card, borderColor: colors.border }]}
               >
-                <Image source={{ uri: item.media.backdrop_path }} style={styles.continueBackdrop} resizeMode="cover" />
+                <Image source={{ uri: item.media?.backdrop_path || item.media?.poster_path }} style={styles.continueBackdrop} resizeMode="cover" />
                 <View style={styles.playOverlay}>
                   <View style={styles.playIconBox}>
                     <Ionicons name="play" size={16} color="#ffffff" />
                   </View>
                 </View>
-                <View style={styles.progressTrack}>
-                  <View
-                    style={[
-                      styles.progressBar,
-                      { width: `${Math.min(100, (item.currentTime / (item.duration || 1)) * 100)}%` },
-                    ]}
-                  />
-                </View>
                 <View style={styles.continueInfo}>
-                  <Text style={styles.continueTitle} numberOfLines={1}>
-                    {item.media.title}
+                  <Text style={[styles.continueTitle, { color: colors.text }]} numberOfLines={1}>
+                    {item.media?.title}
                   </Text>
                   <Text style={styles.continueSubtitle}>
                     {item.season && item.episode
-                      ? `S${item.season} E${item.episode}`
-                      : `${Math.floor(item.currentTime / 60)} min left`}
+                      ? `Season ${item.season} • Episode ${item.episode}`
+                      : 'Movie • Resume'}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -94,7 +105,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f12',
   },
   continueSection: {
     marginVertical: 12,
@@ -107,7 +117,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sectionTitle: {
-    color: '#ffffff',
     fontSize: 16,
     fontWeight: '800',
   },
@@ -116,11 +125,9 @@ const styles = StyleSheet.create({
   },
   continueCard: {
     width: 220,
-    backgroundColor: '#18181f',
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   continueBackdrop: {
     width: '100%',
@@ -141,25 +148,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  progressTrack: {
-    height: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  progressBar: {
-    height: '100%',
-    backgroundColor: '#e50914',
-  },
   continueInfo: {
-    padding: 8,
+    padding: 10,
   },
   continueTitle: {
-    color: '#ffffff',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
   },
   continueSubtitle: {
-    color: '#9ca3af',
-    fontSize: 10,
+    color: '#e50914',
+    fontSize: 11,
+    fontWeight: '700',
     marginTop: 2,
   },
 });

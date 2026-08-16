@@ -64,6 +64,8 @@ export const tmdbService = {
       vote_average: raw.vote_average ? Number(raw.vote_average) : 8.0,
       genres,
       quality: raw.vote_average > 8 ? '4K Ultra HD' : '1080p Full HD',
+      origin_country: raw.origin_country || (raw.origin_country_code ? [raw.origin_country_code] : []),
+      original_language: raw.original_language,
     };
   },
 
@@ -179,6 +181,33 @@ export const tmdbService = {
       );
       if (!res.ok) throw new Error('Season fetch error');
       return await res.json();
+    } catch {
+      return null;
+    }
+  },
+
+  async getAniListId(title: string): Promise<number | null> {
+    try {
+      const query = `
+        query ($search: String) {
+          Media (search: $search, type: ANIME) {
+            id
+          }
+        }
+      `;
+      const res = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          query,
+          variables: { search: title },
+        }),
+      });
+      const data = await res.json();
+      return data?.data?.Media?.id || null;
     } catch {
       return null;
     }

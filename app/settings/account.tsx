@@ -1,20 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Alert, Switch } from 'react-native';
-
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { supabase } from '../../lib/supabase';
-import { safeStorage } from '../../lib/storageAdapter';
-import { storageService } from '../../lib/storage';
 
 export default function AccountPage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-
-  // App Preferences
-  const [autoPlay, setAutoPlay] = useState(true);
-  const [hwAcceleration, setHwAcceleration] = useState(true);
-  const [qualityPref, setQualityPref] = useState('1080p');
 
   // Auth form state
   const [isSignUp, setIsSignUp] = useState(false);
@@ -60,24 +52,6 @@ export default function AccountPage() {
     }
   };
 
-  const handleClearCache = async () => {
-    Alert.alert('Cache Cleared', 'App image cache and temporary streaming data cleared.');
-  };
-
-  const handleClearHistory = async () => {
-    Alert.alert('Clear History', 'Are you sure you want to clear your watch history?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Clear All',
-        style: 'destructive',
-        onPress: async () => {
-          await storageService.clearHistory();
-          Alert.alert('Success', 'Watch history cleared.');
-        },
-      },
-    ]);
-  };
-
   const handleBack = () => {
     if (router.canGoBack()) {
       router.back();
@@ -108,59 +82,24 @@ export default function AccountPage() {
         </View>
       </View>
 
-      {/* App & Playback Preferences */}
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>PLAYBACK PREFERENCES</Text>
-
-        <View style={styles.prefRow}>
+      {/* Preferences Navigation Shortcut */}
+      <TouchableOpacity
+        onPress={() => router.push('/settings/preferences' as any)}
+        activeOpacity={0.7}
+        style={styles.navCard}
+      >
+        <View style={styles.navRow}>
+          <Ionicons name="options-outline" size={22} color="#e50914" />
           <View style={{ flex: 1 }}>
-            <Text style={styles.prefTitle}>Auto-Play Next Episode</Text>
-            <Text style={styles.prefSub}>Automatically start playing the next episode when current ends</Text>
+            <Text style={styles.navTitle}>App Preferences & Playback</Text>
+            <Text style={styles.navSub}>Auto-play, hardware acceleration, streaming quality & data cache</Text>
           </View>
-          <Switch value={autoPlay} onValueChange={setAutoPlay} trackColor={{ false: '#27272a', true: '#e50914' }} />
+          <Ionicons name="chevron-forward" size={18} color="#6b7280" />
         </View>
-
-        <View style={styles.prefRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.prefTitle}>Hardware Player Acceleration</Text>
-            <Text style={styles.prefSub}>Use native GPU acceleration for smooth 4K Ultra HD playback</Text>
-          </View>
-          <Switch value={hwAcceleration} onValueChange={setHwAcceleration} trackColor={{ false: '#27272a', true: '#e50914' }} />
-        </View>
-
-        <View style={styles.qualityGroup}>
-          <Text style={styles.prefTitle}>Default Streaming Quality</Text>
-          <View style={styles.qualitySelector}>
-            {['1080p', '720p', 'Auto'].map((q) => (
-              <TouchableOpacity
-                key={q}
-                onPress={() => setQualityPref(q)}
-                style={[styles.qPill, qualityPref === q && styles.qPillActive]}
-              >
-                <Text style={[styles.qText, qualityPref === q && styles.qTextActive]}>{q}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      </View>
-
-      {/* Data & Storage Management */}
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>DATA & STORAGE</Text>
-
-        <TouchableOpacity onPress={handleClearCache} activeOpacity={0.7} style={styles.actionRow}>
-          <Ionicons name="trash-bin-outline" size={18} color="#d1d5db" />
-          <Text style={styles.actionText}>Clear App Cache</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={handleClearHistory} activeOpacity={0.7} style={styles.actionRow}>
-          <Ionicons name="time-outline" size={18} color="#ef4444" />
-          <Text style={[styles.actionText, { color: '#ef4444' }]}>Clear Watch Progress & History</Text>
-        </TouchableOpacity>
-      </View>
+      </TouchableOpacity>
 
       {/* Cloud Account Sync / Auth Section */}
-      {!user && (
+      {!user ? (
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>CLOUD ACCOUNT SYNC</Text>
           <View style={styles.authForm}>
@@ -207,6 +146,11 @@ export default function AccountPage() {
             </TouchableOpacity>
           </View>
         </View>
+      ) : (
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>ACCOUNT DETAILS</Text>
+          <Text style={styles.authSub}>You are currently logged in as <Text style={{ color: '#ffffff', fontWeight: 'bold' }}>{user.email}</Text>.</Text>
+        </View>
       )}
     </ScrollView>
   );
@@ -225,38 +169,56 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 20,
     gap: 12,
-    marginBottom: 16,
   },
   backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 10,
+    borderRadius: 18,
     backgroundColor: '#18181f',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   headerTitle: {
     color: '#ffffff',
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
   sectionCard: {
     backgroundColor: '#18181f',
-    padding: 16,
     borderRadius: 16,
+    padding: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
     marginBottom: 16,
-    gap: 14,
   },
-  sectionTitle: {
-    color: '#e50914',
-    fontSize: 11,
+  navCard: {
+    backgroundColor: '#18181f',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 9, 20, 0.3)',
+    marginBottom: 16,
+  },
+  navRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  navTitle: {
+    color: '#ffffff',
+    fontSize: 14,
     fontWeight: '800',
-    letterSpacing: 0.5,
+  },
+  navSub: {
+    color: '#9ca3af',
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 2,
   },
   statusBox: {
     flexDirection: 'row',
@@ -265,119 +227,74 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
-    gap: 10,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+    gap: 12,
   },
   statusHeading: {
-    color: '#10b981',
+    color: '#ffffff',
     fontSize: 14,
     fontWeight: '800',
   },
   statusSub: {
     color: '#9ca3af',
     fontSize: 11,
-    marginTop: 2,
+    fontWeight: '500',
+    marginTop: 1,
   },
-  prefRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  prefTitle: {
-    color: '#f3f4f6',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  prefSub: {
-    color: '#9ca3af',
+  sectionTitle: {
+    color: '#ef4444',
     fontSize: 11,
-    marginTop: 2,
-  },
-  qualityGroup: {
-    gap: 8,
-    marginTop: 4,
-  },
-  qualitySelector: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  qPill: {
-    flex: 1,
-    paddingVertical: 8,
-    backgroundColor: '#0f0f12',
-    borderRadius: 8,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  qPillActive: {
-    backgroundColor: '#e50914',
-    borderColor: '#e50914',
-  },
-  qText: {
-    color: '#9ca3af',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  qTextActive: {
-    color: '#ffffff',
-  },
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 8,
-  },
-  actionText: {
-    color: '#f3f4f6',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  formGroup: {
-    gap: 4,
-  },
-  inputLabel: {
-    color: '#9ca3af',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  input: {
-    backgroundColor: '#0f0f12',
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '600',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    fontWeight: '900',
+    letterSpacing: 1.2,
+    marginBottom: 14,
   },
   authForm: {
-    gap: 10,
+    gap: 12,
   },
   authSub: {
     color: '#9ca3af',
-    fontSize: 11,
+    fontSize: 13,
+    lineHeight: 18,
   },
   errorText: {
-    color: '#f87171',
-    fontSize: 11,
+    color: '#ef4444',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  formGroup: {
+    gap: 6,
+  },
+  inputLabel: {
+    color: '#d1d5db',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  input: {
+    backgroundColor: '#0f0f12',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    color: '#ffffff',
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   authBtn: {
     backgroundColor: '#e50914',
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: 6,
   },
   authBtnText: {
     color: '#ffffff',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '800',
   },
   toggleText: {
     color: '#9ca3af',
-    fontSize: 11,
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

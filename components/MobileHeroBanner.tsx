@@ -9,34 +9,36 @@ import { storageService } from '../lib/storage';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface MobileHeroBannerProps {
-  items: MediaItem[];
+  items?: MediaItem[];
+  item?: MediaItem;
 }
 
-export const MobileHeroBanner: React.FC<MobileHeroBannerProps> = ({ items }) => {
+export const MobileHeroBanner: React.FC<MobileHeroBannerProps> = ({ items, item }) => {
+  const itemList = items && items.length > 0 ? items : (item ? [item] : []);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
 
-  const currentItem = items[currentIndex] || items[0];
-
   const handleNext = () => {
-    if (!items || items.length === 0) return;
-    setCurrentIndex((prev) => (prev + 1) % items.length);
+    if (!itemList || itemList.length === 0) return;
+    setCurrentIndex((prev) => (prev + 1) % itemList.length);
   };
 
   const handlePrev = () => {
-    if (!items || items.length === 0) return;
-    setCurrentIndex((prev) => (prev - 1 + items.length) % items.length);
+    if (!itemList || itemList.length === 0) return;
+    setCurrentIndex((prev) => (prev - 1 + itemList.length) % itemList.length);
   };
 
   // Auto-play timer every 5 seconds
   useEffect(() => {
-    if (items.length <= 1) return;
+    if (itemList.length <= 1) return;
     const interval = setInterval(() => {
       handleNext();
     }, 5000);
     return () => clearInterval(interval);
-  }, [items.length, currentIndex]);
+  }, [itemList.length, currentIndex]);
+
+  const currentItem = itemList[currentIndex] || itemList[0];
 
   useEffect(() => {
     if (currentItem) {
@@ -88,7 +90,7 @@ export const MobileHeroBanner: React.FC<MobileHeroBannerProps> = ({ items }) => 
       <View style={styles.gradientOverlay} />
 
       {/* Side Arrow Navigation */}
-      {items.length > 1 && (
+      {itemList.length > 1 && (
         <>
           <TouchableOpacity
             onPress={handlePrev}
@@ -112,7 +114,7 @@ export const MobileHeroBanner: React.FC<MobileHeroBannerProps> = ({ items }) => 
         <View style={styles.tagRow}>
           <View style={styles.ratingTag}>
             <Ionicons name="star" size={12} color="#f59e0b" />
-            <Text style={styles.ratingText}>{currentItem.vote_average.toFixed(1)}</Text>
+            <Text style={styles.ratingText}>{currentItem.vote_average?.toFixed(1) || '0.0'}</Text>
           </View>
           <View style={styles.qualityTag}>
             <Text style={styles.qualityText}>{currentItem.quality || '4K Ultra HD'}</Text>
@@ -154,16 +156,18 @@ export const MobileHeroBanner: React.FC<MobileHeroBannerProps> = ({ items }) => 
         </View>
 
         {/* Clickable Carousel Indicators */}
-        <View style={styles.indicatorRow}>
-          {items.slice(0, 6).map((_, idx) => (
-            <TouchableOpacity
-              key={idx}
-              onPress={() => setCurrentIndex(idx)}
-              activeOpacity={0.7}
-              style={[styles.dot, idx === currentIndex && styles.activeDot]}
-            />
-          ))}
-        </View>
+        {itemList.length > 1 && (
+          <View style={styles.indicatorRow}>
+            {itemList.slice(0, 6).map((_, idx) => (
+              <TouchableOpacity
+                key={idx}
+                onPress={() => setCurrentIndex(idx)}
+                activeOpacity={0.7}
+                style={[styles.dot, idx === currentIndex && styles.activeDot]}
+              />
+            ))}
+          </View>
+        )}
       </View>
     </View>
   );
