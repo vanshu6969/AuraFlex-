@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import * as Updates from 'expo-updates';
 
@@ -61,12 +62,24 @@ function RootContent() {
       <StatusBar style={isLight ? 'dark' : 'light'} />
       <SafeAreaView style={[styles.topSafeArea, { backgroundColor: colors.headerBg }]}>
         <View style={[styles.topHeader, { borderBottomColor: colors.border }]}>
-          <TouchableOpacity onPress={() => router.replace('/')} activeOpacity={0.7} style={styles.brandRow}>
-            <Image source={require('../assets/icon.png')} style={styles.brandIconImage} />
+          <TouchableOpacity onPress={() => router.replace('/')} activeOpacity={0.75} style={styles.brandRow}>
+            <View style={styles.brandIconWrapper}>
+              <Image source={require('../assets/icon.png')} style={styles.brandIconImage} resizeMode="cover" />
+            </View>
             <Text style={[styles.brandTitle, { color: colors.text }]}>
-              AURA <Text style={styles.brandAccent}>FLEX</Text>
+              AURA<Text style={styles.brandAccent}>FLEX</Text>
             </Text>
           </TouchableOpacity>
+
+          <View style={styles.headerRightRow}>
+            <TouchableOpacity onPress={() => router.push('/search')} activeOpacity={0.7} style={styles.headerIconButton}>
+              <Ionicons name="search" size={18} color="#ffffff" />
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => router.push('/more')} activeOpacity={0.7} style={styles.headerIconButton}>
+              <Ionicons name="person-circle-outline" size={22} color="#ffffff" />
+            </TouchableOpacity>
+          </View>
         </View>
       </SafeAreaView>
 
@@ -94,7 +107,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   topSafeArea: {
-    backgroundColor: '#18181f',
+    backgroundColor: '#141419',
   },
   topHeader: {
     height: 56,
@@ -108,20 +121,43 @@ const styles = StyleSheet.create({
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
+  },
+  brandIconWrapper: {
+    width: 34,
+    height: 34,
+    borderRadius: 9,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(229, 9, 20, 0.5)',
+    backgroundColor: '#0a0a0d',
   },
   brandIconImage: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: '100%',
+    height: '100%',
   },
   brandTitle: {
     color: '#ffffff',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '900',
-    letterSpacing: 1.2,
+    letterSpacing: 1.5,
   },
   brandAccent: {
     color: '#e50914',
+  },
+  headerRightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerIconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
 });

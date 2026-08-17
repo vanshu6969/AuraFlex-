@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { MobileHeroBanner } from '../../components/MobileHeroBanner';
 import { MobileMediaGrid } from '../../components/MobileMediaGrid';
+import { ContinueWatchingCard } from '../../components/ContinueWatchingCard';
+import { Top10MediaRow } from '../../components/Top10MediaRow';
+import { CategoryPillBar } from '../../components/CategoryPillBar';
 import { tmdbService } from '../../lib/tmdb';
 import { storageService, subscribeStorage } from '../../lib/storage';
 import { MediaItem, WatchProgress } from '../../types/media';
@@ -17,6 +20,7 @@ export default function HomeScreen() {
   const [popularMovies, setPopularMovies] = useState<MediaItem[]>([]);
   const [topTVShows, setTopTVShows] = useState<MediaItem[]>([]);
   const [recentlyAdded, setRecentlyAdded] = useState<MediaItem[]>([]);
+  const [activeCategory, setActiveCategory] = useState('all');
   const { colors } = useTheme();
 
   const loadData = async () => {
@@ -37,7 +41,8 @@ export default function HomeScreen() {
       const tv = await tmdbService.getTopTVShows();
       setTopTVShows(tv);
 
-      setRecentlyAdded([...trendingData].reverse().slice(0, 8));
+      const recent = await tmdbService.getRecentlyAdded();
+      setRecentlyAdded(recent.length > 0 ? recent.slice(0, 18) : [...trendingData].reverse().slice(0, 18));
     } catch (e) {
       console.error('Home load error:', e);
     }
@@ -49,6 +54,17 @@ export default function HomeScreen() {
     return () => unsubscribe();
   }, []);
 
+  const handleSelectCategory = (catId: string) => {
+    setActiveCategory(catId);
+    if (catId === 'punjabi' || catId === 'kdrama' || catId === 'series') {
+      router.push('/series');
+    } else if (catId === 'movies') {
+      router.push('/search?type=movie');
+    } else if (catId === 'anime') {
+      router.push('/search?query=anime');
+    }
+  };
+
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.bg }]} showsVerticalScrollIndicator={false}>
       {/* Featured Hero Banner */}
@@ -56,7 +72,7 @@ export default function HomeScreen() {
         <MobileHeroBanner items={trending.length > 0 ? trending : (featured ? [featured] : [])} />
       )}
 
-      {/* Continue Watching Section (No Progress Bar / % Text) */}
+      {/* Continue Watching Section */}
       {continueWatching.length > 0 && (
         <View style={styles.continueSection}>
           <View style={styles.sectionHeader}>
@@ -65,36 +81,20 @@ export default function HomeScreen() {
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.continueList}>
             {continueWatching.map((item) => (
-              <TouchableOpacity
+              <ContinueWatchingCard
                 key={item.mediaId}
-                activeOpacity={0.8}
-                onPress={() => router.push(`/watch/${item.media?.media_type || 'movie'}/${item.media?.id}`)}
-                style={[styles.continueCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-              >
-                <Image source={{ uri: item.media?.backdrop_path || item.media?.poster_path }} style={styles.continueBackdrop} resizeMode="cover" />
-                <View style={styles.playOverlay}>
-                  <View style={styles.playIconBox}>
-                    <Ionicons name="play" size={16} color="#ffffff" />
-                  </View>
-                </View>
-                <View style={styles.continueInfo}>
-                  <Text style={[styles.continueTitle, { color: colors.text }]} numberOfLines={1}>
-                    {item.media?.title}
-                  </Text>
-                  <Text style={styles.continueSubtitle}>
-                    {item.season && item.episode
-                      ? `Season ${item.season} • Episode ${item.episode}`
-                      : 'Movie • Resume'}
-                  </Text>
-                </View>
-              </TouchableOpacity>
+                item={item}
+                onRemove={(id) => setContinueWatching((prev) => prev.filter((p) => String(p.mediaId) !== String(id)))}
+              />
             ))}
           </ScrollView>
         </View>
       )}
 
+      {/* Top 10 Today Row with Netflix-style Giant Numbers */}
+      {trending.length > 0 && <Top10MediaRow title="🏆 Top 10 Media Today" items={trending} />}
+
       {/* Media Rows */}
-      <MobileMediaGrid title="🔥 Trending Now" items={trending} variant="carousel" />
       <MobileMediaGrid title="🎬 Popular Movies" items={popularMovies} variant="carousel" />
       <MobileMediaGrid title="📺 Top Rated TV Series" items={topTVShows} variant="carousel" />
       <MobileMediaGrid title="✨ Recently Added" items={recentlyAdded} variant="grid" />
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   sectionTitle: {
     fontSize: 16,
@@ -122,43 +122,5 @@ const styles = StyleSheet.create({
   },
   continueList: {
     gap: 12,
-  },
-  continueCard: {
-    width: 220,
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-  },
-  continueBackdrop: {
-    width: '100%',
-    height: 110,
-  },
-  playOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    height: 110,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  playIconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#e50914',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  continueInfo: {
-    padding: 10,
-  },
-  continueTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  continueSubtitle: {
-    color: '#e50914',
-    fontSize: 11,
-    fontWeight: '700',
-    marginTop: 2,
   },
 });

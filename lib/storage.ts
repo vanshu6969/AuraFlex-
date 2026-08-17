@@ -127,15 +127,19 @@ export const storageService = {
           .order('updated_at', { ascending: false });
 
         if (!error && data && data.length > 0) {
-          return data.map((row) => ({
-            mediaId: row.media_id,
-            media: row.media_data as MediaItem,
-            season: row.season || 1,
-            episode: row.episode || 1,
-            currentTime: Number(row.played_time || 0),
-            duration: Number(row.duration || 0),
-            updatedAt: new Date(row.updated_at).getTime(),
-          }));
+          return data.map((row) => {
+            const mediaObj = row.media_data as MediaItem;
+            const isMovie = mediaObj?.media_type === 'movie';
+            return {
+              mediaId: row.media_id,
+              media: mediaObj,
+              season: isMovie ? undefined : (row.season || 1),
+              episode: isMovie ? undefined : (row.episode || 1),
+              currentTime: Number(row.played_time || 0),
+              duration: Number(row.duration || 0),
+              updatedAt: new Date(row.updated_at).getTime(),
+            };
+          });
         }
       }
     } catch {}

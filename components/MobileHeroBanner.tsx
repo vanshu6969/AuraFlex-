@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions, Platform } from 'react-native';
 
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -155,19 +155,6 @@ export const MobileHeroBanner: React.FC<MobileHeroBannerProps> = ({ items, item 
           </TouchableOpacity>
         </View>
 
-        {/* Clickable Carousel Indicators */}
-        {itemList.length > 1 && (
-          <View style={styles.indicatorRow}>
-            {itemList.slice(0, 6).map((_, idx) => (
-              <TouchableOpacity
-                key={idx}
-                onPress={() => setCurrentIndex(idx)}
-                activeOpacity={0.7}
-                style={[styles.dot, idx === currentIndex && styles.activeDot]}
-              />
-            ))}
-          </View>
-        )}
       </View>
     </View>
   );
@@ -175,8 +162,8 @@ export const MobileHeroBanner: React.FC<MobileHeroBannerProps> = ({ items, item 
 
 const styles = StyleSheet.create({
   container: {
-    width: SCREEN_WIDTH,
-    height: 380,
+    width: '100%',
+    height: Platform.OS === 'web' ? 440 : 380,
     position: 'relative',
     backgroundColor: '#0f0f12',
   },
@@ -186,7 +173,12 @@ const styles = StyleSheet.create({
   },
   gradientOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15, 15, 18, 0.55)',
+    backgroundColor: 'rgba(15, 15, 18, 0.45)',
+    ...(Platform.OS === 'web'
+      ? ({
+          backgroundImage: 'linear-gradient(to top, #0f0f12 0%, rgba(15, 15, 18, 0.4) 50%, rgba(15, 15, 18, 0.6) 100%)',
+        } as any)
+      : {}),
   },
   arrowBtn: {
     position: 'absolute',

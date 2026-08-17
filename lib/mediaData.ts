@@ -136,6 +136,12 @@ export const EMBED_SERVERS: EmbedServer[] = [
         ? `https://www.nontongo.win/embed/tv/${id}/${season}/${episode}?${SUB_FLAGS}`
         : `https://www.nontongo.win/embed/movie/${id}?${SUB_FLAGS}`,
   },
+  {
+    id: 'youtube',
+    name: 'YouTube',
+    badge: 'YouTube Stream',
+    getUrl: () => 'about:blank',
+  },
 ];
 
 export const MOCK_MEDIA_ITEMS: MediaItem[] = [

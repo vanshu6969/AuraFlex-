@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, FlatList, StyleSheet } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Platform } from 'react-native';
 
 import { MobileMediaCard } from './MobileMediaCard';
 import { MediaItem } from '../types/media';
@@ -30,11 +30,20 @@ export const MobileMediaGrid: React.FC<MobileMediaGridProps> = ({
           showsHorizontalScrollIndicator={false}
           data={items}
           keyExtractor={(item) => String(item.id)}
-          renderItem={({ item }) => <MobileMediaCard item={item} width={135} />}
+          renderItem={({ item }) => <MobileMediaCard item={item} width={155} />}
           contentContainerStyle={styles.carouselPadding}
         />
       ) : (
-        <View style={styles.gridContainer}>
+        <View
+          style={[
+            styles.gridContainer,
+            Platform.OS === 'web' && ({
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(155px, 1fr))',
+              gap: 16,
+            } as any),
+          ]}
+        >
           {items.map((item) => (
             <View key={item.id} style={styles.gridCardWrapper}>
               <MobileMediaCard item={item} width="100%" />
@@ -48,7 +57,7 @@ export const MobileMediaGrid: React.FC<MobileMediaGridProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 12,
+    marginVertical: 14,
   },
   headerRow: {
     flexDirection: 'row',
@@ -62,26 +71,30 @@ const styles = StyleSheet.create({
     height: 18,
     backgroundColor: '#e50914',
     borderRadius: 2,
+    shadowColor: '#e50914',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 6,
   },
   sectionTitle: {
     color: '#ffffff',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '800',
     letterSpacing: 0.3,
   },
   carouselPadding: {
     paddingLeft: 16,
-    paddingRight: 4,
+    paddingRight: 8,
   },
   gridContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     paddingHorizontal: 16,
     justifyContent: 'flex-start',
-    gap: 16,
+    gap: 14,
   },
   gridCardWrapper: {
-    width: 155,
-    marginBottom: 12,
+    width: Platform.OS === 'web' ? '100%' : 155,
+    marginBottom: 14,
   },
 });

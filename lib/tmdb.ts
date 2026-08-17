@@ -91,14 +91,107 @@ export const tmdbService = {
     }
   },
 
+  isDailyTVSerial(item: any): boolean {
+    if (!item) return false;
+    const genre_ids: number[] = item.genre_ids || item.genres?.map((g: any) => g.id) || [];
+    // 10766 = Soap, 10764 = Reality, 10767 = Talk
+    if (genre_ids.includes(10766) || genre_ids.includes(10764) || genre_ids.includes(10767)) {
+      return true;
+    }
+    const titleLower = (item.title || item.name || '').toLowerCase();
+    const BLACKLIST = [
+      'mahadev', 'pandya', 'anupama', 'kumkum', 'kundali', 'rishta', 'taarak',
+      'saath nibhaana', 'bhabhi', 'savdhaan', 'crime patrol', 'naagin', 'ye hai mohabbatein',
+      'ishqbaaz', 'diya aur baati', 'balika vadhu', 'sasural', 'kasautii', 'pavitra rishta',
+      'uttaran', 'ghum hai', 'imlie', 'yeh rishta', 'parineetii', 'udaariyaan',
+      'bhagya lakshmi', 'radhakrishn', 'vighnaharta', 'shrimad', 'cid', 'c.i.d.', 'bigg boss',
+      'khatron ke khiladi', 'kaun banega', 'happu', 'kapil sharma', 'bhabiji',
+      'choti sarrdaarni', 'molkki', 'meet', 'teriyaan', 'bade achhe', 'patiala babes',
+      'sasural simar', 'kahaani ghar', 'kyunki saas', 'pyaar kii ye', 'sab tv', 'star plus',
+      'aladdin', 'kaala teeka', 'bahu begum', 'charmsukh', 'palang tod', 'safed sagar',
+      'ullu', 'kooku', 'rabbit', 'primeplay', 'altbalaji', 'gandi baat', 'mastram',
+      ' teri meri', 'doriyaann', 'faltu', 'dua', 'titlie'
+    ];
+    return BLACKLIST.some((kw) => titleLower.includes(kw));
+  },
+
   async getTopTVShows(): Promise<MediaItem[]> {
     try {
       const res = await fetch(`${TMDB_BASE_URL}/tv/top_rated?api_key=${TMDB_API_KEY}&language=en-US&page=1`);
       if (!res.ok) throw new Error('Top TV shows fetch error');
       const data = await res.json();
-      return data.results.map((item: any) => this.formatMediaItem(item, 'tv'));
+      const filtered = data.results.filter((item: any) => !this.isDailyTVSerial(item));
+      return filtered.map((item: any) => this.formatMediaItem(item, 'tv'));
     } catch {
       return MOCK_MEDIA_ITEMS.filter((item) => item.media_type === 'tv');
+    }
+  },
+
+  async getAllSeries(maxPages: number = 5): Promise<MediaItem[]> {
+    try {
+      const pagePromises = Array.from({ length: maxPages }, (_, i) => i + 1).map((page) =>
+        fetch(`${TMDB_BASE_URL}/tv/popular?api_key=${TMDB_API_KEY}&language=en-US&page=${page}`).then((r) =>
+          r.ok ? r.json() : { results: [] }
+        )
+      );
+
+      const pageResults = await Promise.all(pagePromises);
+      const allItems: any[] = [];
+      const seenIds = new Set<number>();
+
+      for (const resData of pageResults) {
+        if (resData.results && Array.isArray(resData.results)) {
+          for (const item of resData.results) {
+            if (!seenIds.has(item.id) && !this.isDailyTVSerial(item)) {
+              seenIds.add(item.id);
+              allItems.push(item);
+            }
+          }
+        }
+      }
+
+      // Sort from NEWEST to OLDEST (by first_air_date descending)
+      allItems.sort((a, b) => {
+        const dateA = new Date(a.first_air_date || 0).getTime();
+        const dateB = new Date(b.first_air_date || 0).getTime();
+        return dateB - dateA;
+      });
+
+      return allItems.map((item) => this.formatMediaItem(item, 'tv'));
+    } catch {
+      return MOCK_MEDIA_ITEMS.filter((item) => item.media_type === 'tv');
+    }
+  },
+
+  async getAsianDramas(): Promise<MediaItem[]> {
+    try {
+      const res = await fetch(
+        `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&with_original_language=ko|zh|ja&sort_by=popularity.desc&page=1`
+      );
+      if (!res.ok) throw new Error('Asian dramas fetch error');
+      const data = await res.json();
+      const filtered = data.results.filter((item: any) => !this.isDailyTVSerial(item));
+      return filtered.map((item: any) => this.formatMediaItem(item, 'tv'));
+    } catch {
+      return MOCK_MEDIA_ITEMS.filter((item) => item.media_type === 'tv');
+    }
+  },
+
+  async getPunjabiAndWebSeries(): Promise<MediaItem[]> {
+    try {
+      const res = await fetch(
+        `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&with_original_language=hi|pa&sort_by=vote_count.desc&page=1`
+      );
+      if (!res.ok) throw new Error('Web series fetch error');
+      const data = await res.json();
+      const filtered = data.results.filter((item: any) => !this.isDailyTVSerial(item));
+      const fetched = filtered.map((item: any) => this.formatMediaItem(item, 'tv'));
+      const mockItems = MOCK_MEDIA_ITEMS.filter(
+        (m) => m.id === 232301 || m.title.toLowerCase().includes('jigree') || m.title.toLowerCase().includes('outlaw')
+      );
+      return [...mockItems, ...fetched.filter((f: any) => String(f.id) !== '232301')];
+    } catch {
+      return MOCK_MEDIA_ITEMS;
     }
   },
 

@@ -9,6 +9,7 @@ import { EMBED_SERVERS, isKdramaOrCdrama, isPunjabiMedia, isAnimeMedia } from '.
 import { storageService } from '../lib/storage';
 import { tmdbService } from '../lib/tmdb';
 import { ReportRequestModal } from './ReportRequestModal';
+import { YouTubePlayer } from './YouTubePlayer';
 
 interface MobilePlayerProps {
   media: MediaItem;
@@ -45,11 +46,11 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
   const isSeries = media.media_type === 'tv' || (media.media_type === 'anime' && (media.episodes_count || 0) > 1);
 
   const availableServers = isPunjabi
-    ? EMBED_SERVERS.filter((s) => s.id === 'flmu')
+    ? EMBED_SERVERS.filter((s) => s.id === 'flmu' || s.id === 'youtube')
     : isKdrama
-    ? EMBED_SERVERS.filter((s) => s.id === 'nontongo')
+    ? EMBED_SERVERS.filter((s) => s.id === 'nontongo' || s.id === 'youtube')
     : isAnime
-    ? EMBED_SERVERS.filter((s) => s.id === 'anime' || s.id === 'videasy' || s.id === 'embedmaster')
+    ? EMBED_SERVERS.filter((s) => s.id === 'anime' || s.id === 'videasy' || s.id === 'embedmaster' || s.id === 'youtube')
     : EMBED_SERVERS.filter((s) => s.id !== 'nontongo' && s.id !== 'anime');
 
   const [activeServerId, setActiveServerId] = useState(() =>
@@ -81,7 +82,9 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
   }, [media.title]);
 
   const currentServer = EMBED_SERVERS.find((s) => s.id === activeServerId) || availableServers[0] || EMBED_SERVERS[0];
-  const embedUrl = currentServer.getUrl(media.media_type, media.id, season, episode, anilistId);
+  const embedUrl = activeServerId === 'youtube'
+    ? 'about:blank'
+    : currentServer.getUrl(media.media_type, media.id, season, episode, anilistId);
 
   useEffect(() => {
     setLoading(true);
@@ -240,14 +243,6 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
             </TouchableOpacity>
           );
         })}
-        <TouchableOpacity
-          onPress={() => Alert.alert('More Providers', '🚀 Coming Soon! Additional 4K Premium Providers will be unlocked in the next update.')}
-          style={[styles.serverChip, { backgroundColor: 'rgba(229, 9, 20, 0.15)', borderColor: 'rgba(229, 9, 20, 0.4)' }]}
-        >
-          <Text style={[styles.serverChipText, { color: '#e50914', fontWeight: '800' }]}>
-            + More Providers
-          </Text>
-        </TouchableOpacity>
       </View>
 
       {/* Embedded Fullscreen Video Player Container */}
@@ -272,60 +267,72 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
           </View>
         ) : (
           <>
-            {loading && (
-              <View style={styles.loadingOverlay} pointerEvents="none">
-                <ActivityIndicator size="large" color="#e50914" />
-                <Text style={styles.loadingText}>Connecting to {currentServer.name}...</Text>
-              </View>
-            )}
+            {activeServerId === 'youtube' ? (
+              <YouTubePlayer
+                media={media}
+                season={season}
+                episode={episode}
+                isSeries={isSeries}
+                onSwitchServer={triggerAutoFallback}
+              />
+            ) : (
+              <>
+                {loading && (
+                  <View style={styles.loadingOverlay} pointerEvents="none">
+                    <ActivityIndicator size="large" color="#e50914" />
+                    <Text style={styles.loadingText}>Connecting to {currentServer.name}...</Text>
+                  </View>
+                )}
 
-            {Platform.OS === 'web' ? (
-              <View style={{ flex: 1, width: '100%', height: '100%', position: 'relative' }}>
-                {showAdShield && (
-                  <TouchableOpacity
-                    activeOpacity={1}
-                    onPress={handleShieldClick}
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      zIndex: 10,
-                      backgroundColor: 'rgba(0, 0, 0, 0.01)',
+                {Platform.OS === 'web' ? (
+                  <View style={{ flex: 1, width: '100%', height: '100%', position: 'relative' }}>
+                    {showAdShield && (
+                      <TouchableOpacity
+                        activeOpacity={1}
+                        onPress={handleShieldClick}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          zIndex: 10,
+                          backgroundColor: 'rgba(0, 0, 0, 0.01)',
+                        }}
+                      />
+                    )}
+                    <iframe
+                      key={embedUrl}
+                      src={embedUrl}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        border: 'none',
+                        backgroundColor: '#000',
+                      }}
+                      allowFullScreen={true}
+                      allow="autoplay; fullscreen *; picture-in-picture; encrypted-media"
+                    />
+                  </View>
+                ) : (
+                  <WebView
+                    key={embedUrl}
+                    source={{ uri: embedUrl }}
+                    style={styles.webview}
+                    injectedJavaScript={adBlockScript}
+                    onLoadStart={() => setLoading(true)}
+                    onLoadEnd={() => setLoading(false)}
+                    onError={() => {
+                      setLoading(false);
+                      setHasError(true);
                     }}
+                    allowsFullscreenVideo
+                    javaScriptEnabled
+                    domStorageEnabled
+                    allowsInlineMediaPlayback
                   />
                 )}
-                <iframe
-                  key={embedUrl}
-                  src={embedUrl}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    border: 'none',
-                    backgroundColor: '#000',
-                  }}
-                  allowFullScreen={true}
-                  allow="autoplay; fullscreen *; picture-in-picture; encrypted-media"
-                />
-              </View>
-            ) : (
-              <WebView
-                key={embedUrl}
-                source={{ uri: embedUrl }}
-                style={styles.webview}
-                injectedJavaScript={adBlockScript}
-                onLoadStart={() => setLoading(true)}
-                onLoadEnd={() => setLoading(false)}
-                onError={() => {
-                  setLoading(false);
-                  setHasError(true);
-                }}
-                allowsFullscreenVideo
-                javaScriptEnabled
-                domStorageEnabled
-                allowsInlineMediaPlayback
-              />
+              </>
             )}
           </>
         )}
