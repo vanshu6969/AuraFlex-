@@ -1,0 +1,9 @@
+# robots.txt for AuraFlex Movies & TV Series
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /settings/
+Disallow: /history
+Disallow: /watchlist
+
+Sitemap: https://auraflexmovies.vercel.app/sitemap.xml

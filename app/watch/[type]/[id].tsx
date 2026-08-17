@@ -7,7 +7,7 @@ import { MobilePlayer } from '../../../components/MobilePlayer';
 import { MobileMediaGrid } from '../../../components/MobileMediaGrid';
 import { MOCK_MEDIA_ITEMS } from '../../../lib/mediaData';
 import { tmdbService } from '../../../lib/tmdb';
-import { getAnimeDetails } from '../../../lib/anilist';
+import { StructuredData } from '../../../components/StructuredData';
 import { MediaItem } from '../../../types/media';
 
 
@@ -82,6 +82,15 @@ export default function WatchScreen() {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Schema.org Structured Data for Google Indexing */}
+      <StructuredData
+        type={activeMedia.media_type === 'tv' ? 'tv' : 'movie'}
+        title={`Watch ${activeMedia.title} HD Free on AuraFlex`}
+        description={activeMedia.overview || `Stream ${activeMedia.title} free in HD on AuraFlex.`}
+        image={activeMedia.poster_path}
+        url={`https://auraflexmovies.vercel.app/watch/${activeMedia.media_type || 'movie'}/${activeMedia.id}`}
+      />
+
       {/* Top Back Navigation Bar */}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
