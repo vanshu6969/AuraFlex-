@@ -28,6 +28,7 @@ export default function HTML({ children }: PropsWithChildren) {
 
         {/* Google Search Console Verification */}
         <meta name="google-site-verification" content="-ohE-sj98-EW1SdElsxFLL9ZYiKWKIcw6il8dcwLRk0" />
+        <meta name="google-site-verification" content="ZokIMoeK71DjYGxUzIJldeCGWV0uYfHZ4U9B3LVOg0s" />
 
         {/* Open Graph / Facebook */}
         <meta property="og:type" content="website" />
