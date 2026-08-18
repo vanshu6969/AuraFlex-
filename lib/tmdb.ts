@@ -32,6 +32,17 @@ const GENRE_MAP: Record<number, string> = {
   10768: 'War',
 };
 
+const deduplicateMediaList = (items: MediaItem[]): MediaItem[] => {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    if (!item || item.id === undefined || item.id === null) return false;
+    const key = `${item.media_type || 'movie'}_${item.id}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
 export const tmdbService = {
   formatMediaItem(raw: any, defaultType: 'movie' | 'tv' = 'movie'): MediaItem {
     const media_type = raw.media_type || defaultType;
@@ -74,9 +85,10 @@ export const tmdbService = {
       const res = await fetch(`${TMDB_BASE_URL}/trending/all/week?api_key=${TMDB_API_KEY}&language=en-US`);
       if (!res.ok) throw new Error('Trending fetch error');
       const data = await res.json();
-      return data.results.map((item: any) => this.formatMediaItem(item));
+      const list = data.results.map((item: any) => this.formatMediaItem(item));
+      return deduplicateMediaList(list);
     } catch {
-      return MOCK_MEDIA_ITEMS;
+      return deduplicateMediaList(MOCK_MEDIA_ITEMS);
     }
   },
 
@@ -85,11 +97,13 @@ export const tmdbService = {
       const res = await fetch(`${TMDB_BASE_URL}/movie/popular?api_key=${TMDB_API_KEY}&language=en-US&page=1`);
       if (!res.ok) throw new Error('Popular movies fetch error');
       const data = await res.json();
-      return data.results.map((item: any) => this.formatMediaItem(item, 'movie'));
+      const list = data.results.map((item: any) => this.formatMediaItem(item, 'movie'));
+      return deduplicateMediaList(list);
     } catch {
-      return MOCK_MEDIA_ITEMS.filter((item) => item.media_type === 'movie');
+      return deduplicateMediaList(MOCK_MEDIA_ITEMS.filter((item) => item.media_type === 'movie'));
     }
   },
+
 
   isDailyTVSerial(item: any): boolean {
     if (!item) return false;
@@ -121,9 +135,10 @@ export const tmdbService = {
       if (!res.ok) throw new Error('Top TV shows fetch error');
       const data = await res.json();
       const filtered = data.results.filter((item: any) => !this.isDailyTVSerial(item));
-      return filtered.map((item: any) => this.formatMediaItem(item, 'tv'));
+      const list = filtered.map((item: any) => this.formatMediaItem(item, 'tv'));
+      return deduplicateMediaList(list);
     } catch {
-      return MOCK_MEDIA_ITEMS.filter((item) => item.media_type === 'tv');
+      return deduplicateMediaList(MOCK_MEDIA_ITEMS.filter((item) => item.media_type === 'tv'));
     }
   },
 
@@ -157,9 +172,10 @@ export const tmdbService = {
         return dateB - dateA;
       });
 
-      return allItems.map((item) => this.formatMediaItem(item, 'tv'));
+      const list = allItems.map((item) => this.formatMediaItem(item, 'tv'));
+      return deduplicateMediaList(list);
     } catch {
-      return MOCK_MEDIA_ITEMS.filter((item) => item.media_type === 'tv');
+      return deduplicateMediaList(MOCK_MEDIA_ITEMS.filter((item) => item.media_type === 'tv'));
     }
   },
 
@@ -171,11 +187,13 @@ export const tmdbService = {
       if (!res.ok) throw new Error('Asian dramas fetch error');
       const data = await res.json();
       const filtered = data.results.filter((item: any) => !this.isDailyTVSerial(item));
-      return filtered.map((item: any) => this.formatMediaItem(item, 'tv'));
+      const list = filtered.map((item: any) => this.formatMediaItem(item, 'tv'));
+      return deduplicateMediaList(list);
     } catch {
-      return MOCK_MEDIA_ITEMS.filter((item) => item.media_type === 'tv');
+      return deduplicateMediaList(MOCK_MEDIA_ITEMS.filter((item) => item.media_type === 'tv'));
     }
   },
+
 
   async getPunjabiAndWebSeries(): Promise<MediaItem[]> {
     try {
@@ -305,5 +323,90 @@ export const tmdbService = {
       return null;
     }
   },
+
+  async getCategoryItems(categoryKey: string, page: number = 1): Promise<MediaItem[]> {
+    try {
+      let url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&sort_by=popularity.desc&page=${page}`;
+
+      switch (categoryKey.toLowerCase()) {
+        case 'marvel':
+          url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&with_companies=420&sort_by=popularity.desc&page=${page}`;
+          break;
+        case 'dc':
+          url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&with_companies=9993|128064&sort_by=popularity.desc&page=${page}`;
+          break;
+        case 'anime':
+          url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&with_genres=16&with_original_language=ja&sort_by=popularity.desc&page=${page}`;
+          break;
+        case 'kdrama':
+          url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&with_original_language=ko&with_genres=18&sort_by=popularity.desc&page=${page}`;
+          break;
+        case 'cdrama':
+          url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&with_original_language=zh&with_genres=18&sort_by=popularity.desc&page=${page}`;
+          break;
+        case 'punjabi':
+          url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&with_original_language=pa&sort_by=popularity.desc&page=${page}`;
+          break;
+        case 'bollywood':
+          url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&with_original_language=hi&sort_by=popularity.desc&page=${page}`;
+          break;
+        case 'hollywood-series':
+          url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&with_original_language=en&without_genres=16&sort_by=popularity.desc&page=${page}`;
+          break;
+        case 'indian-series':
+          url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&with_original_language=hi|pa|ta|te&sort_by=popularity.desc&page=${page}`;
+          break;
+        case 'action':
+          url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&with_genres=28,12&sort_by=popularity.desc&page=${page}`;
+          break;
+        case 'comedy':
+          url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&with_genres=35&sort_by=popularity.desc&page=${page}`;
+          break;
+        case 'horror':
+          url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&with_genres=27&sort_by=popularity.desc&page=${page}`;
+          break;
+
+        default:
+          url = `${TMDB_BASE_URL}/trending/all/week?api_key=${TMDB_API_KEY}&language=en-US&page=${page}`;
+      }
+
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Category fetch error');
+      const data = await res.json();
+      const defaultType = ['marvel', 'dc', 'punjabi', 'bollywood', 'action', 'horror'].includes(categoryKey) ? 'movie' : 'tv';
+      const list = data.results.map((item: any) => this.formatMediaItem(item, defaultType));
+      return deduplicateMediaList(list);
+    } catch {
+      return MOCK_MEDIA_ITEMS;
+    }
+  },
+
+  async getAnimeCollection(): Promise<MediaItem[]> {
+    return this.getCategoryItems('anime', 1);
+  },
+
+  async getKdramaCollection(): Promise<MediaItem[]> {
+    return this.getCategoryItems('kdrama', 1);
+  },
+
+  async getPunjabiBollywoodCollection(): Promise<MediaItem[]> {
+    return this.getCategoryItems('punjabi', 1);
+  },
+
+  async getMarvelDCCollection(): Promise<MediaItem[]> {
+    return this.getCategoryItems('marvel', 1);
+  },
+
+  async getComedyCollection(): Promise<MediaItem[]> {
+    return this.getCategoryItems('comedy', 1);
+  },
+
+  async getActionAdventureCollection(): Promise<MediaItem[]> {
+    return this.getCategoryItems('action', 1);
+  },
 };
+
+
+
+
 

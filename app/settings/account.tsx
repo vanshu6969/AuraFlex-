@@ -77,7 +77,8 @@ export default function AccountPage() {
           <Ionicons name="shield-checkmark" size={22} color="#10b981" />
           <View style={{ flex: 1 }}>
             <Text style={styles.statusHeading}>{user ? user.email : 'Guest Member Active'}</Text>
-            <Text style={styles.statusSub}>{user ? 'Synced across devices via Supabase' : 'Local storage profile active'}</Text>
+            <Text style={styles.statusSub}>{user ? 'Synced across devices via Secure Cloud' : 'Local storage profile active'}</Text>
+
           </View>
         </View>
       </View>

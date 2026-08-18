@@ -8,6 +8,10 @@ import { storageService } from '../lib/storage';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+
+
+
+
 interface MobileHeroBannerProps {
   items?: MediaItem[];
   item?: MediaItem;
@@ -18,6 +22,8 @@ export const MobileHeroBanner: React.FC<MobileHeroBannerProps> = ({ items, item 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
+
+
 
   const handleNext = () => {
     if (!itemList || itemList.length === 0) return;
@@ -80,6 +86,17 @@ export const MobileHeroBanner: React.FC<MobileHeroBannerProps> = ({ items, item 
 
   if (!currentItem) return null;
 
+  // Formatting metadata strings
+  const year = currentItem.release_date?.substring(0, 4) || currentItem.first_air_date?.substring(0, 4) || '2024';
+  const typeText = currentItem.media_type === 'movie' 
+    ? 'Movie' 
+    : (currentItem.episodes_count ? `${Math.max(1, Math.ceil(currentItem.episodes_count / 10))} Seasons` : '2 Seasons');
+  const genresText = currentItem.genres && currentItem.genres.length > 0 
+    ? currentItem.genres.slice(0, 2).join(' / ').toUpperCase() 
+    : 'ACTION / DRAMA';
+  const ratingText = `IMDb ${(currentItem.vote_average || 8.1).toFixed(1)}`;
+  const qualityText = currentItem.quality || '4K Ultra HD';
+
   return (
     <View
       style={styles.container}
@@ -89,61 +106,49 @@ export const MobileHeroBanner: React.FC<MobileHeroBannerProps> = ({ items, item 
       <Image source={{ uri: currentItem.backdrop_path }} style={styles.backdrop} resizeMode="cover" />
       <View style={styles.gradientOverlay} />
 
-      {/* Side Arrow Navigation */}
-      {itemList.length > 1 && (
-        <>
-          <TouchableOpacity
-            onPress={handlePrev}
-            activeOpacity={0.7}
-            style={[styles.arrowBtn, styles.arrowLeft]}
-          >
-            <Ionicons name="chevron-back" size={20} color="#ffffff" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={handleNext}
-            activeOpacity={0.7}
-            style={[styles.arrowBtn, styles.arrowRight]}
-          >
-            <Ionicons name="chevron-forward" size={20} color="#ffffff" />
-          </TouchableOpacity>
-        </>
-      )}
-
       <View style={styles.contentContainer}>
-        <View style={styles.tagRow}>
-          <View style={styles.ratingTag}>
-            <Ionicons name="star" size={12} color="#f59e0b" />
-            <Text style={styles.ratingText}>{currentItem.vote_average?.toFixed(1) || '0.0'}</Text>
-          </View>
-          <View style={styles.qualityTag}>
-            <Text style={styles.qualityText}>{currentItem.quality || '4K Ultra HD'}</Text>
-          </View>
-        </View>
+        {/* Category Kicker */}
+        <Text style={styles.categoryKicker}>{genresText}</Text>
 
         <Text style={styles.title} numberOfLines={2}>
           {currentItem.title}
         </Text>
 
+        {/* Sleek Metadata Text */}
+        <View style={styles.metadataRow}>
+          <Text style={styles.metadataText}>{ratingText}</Text>
+          <Text style={styles.bulletSeparator}>•</Text>
+          <Text style={styles.metadataText}>{year}</Text>
+          <Text style={styles.bulletSeparator}>•</Text>
+          <Text style={styles.metadataText}>{typeText}</Text>
+          <Text style={styles.bulletSeparator}>•</Text>
+          <Text style={styles.metadataText}>{qualityText}</Text>
+        </View>
+
         <Text style={styles.overview} numberOfLines={2}>
           {currentItem.overview}
         </Text>
 
+        {/* Action Buttons */}
         <View style={styles.actionRow}>
           <TouchableOpacity
-            activeOpacity={0.8}
+            activeOpacity={0.85}
             onPress={() => router.push(`/watch/${currentItem.media_type}/${currentItem.id}`)}
             style={styles.watchButton}
           >
-            <Ionicons name="play" size={18} color="#ffffff" />
+            <Ionicons name="play" size={18} color="#000000" />
             <Text style={styles.watchText}>Watch Now</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            activeOpacity={0.8}
+            activeOpacity={0.85}
             onPress={toggleWatchlist}
             style={[styles.watchlistButton, isInWatchlist && styles.watchlistActive]}
           >
+
+
+
+
             <Ionicons
               name={isInWatchlist ? 'checkmark' : 'add'}
               size={18}
@@ -155,6 +160,21 @@ export const MobileHeroBanner: React.FC<MobileHeroBannerProps> = ({ items, item 
           </TouchableOpacity>
         </View>
 
+
+
+        {/* Dynamic Capsule Indicator Dots */}
+        {itemList.length > 1 && (
+          <View style={styles.indicatorRow}>
+            {itemList.map((_, index) => (
+              <TouchableOpacity
+                key={index}
+                activeOpacity={0.7}
+                onPress={() => setCurrentIndex(index)}
+                style={[styles.dot, index === currentIndex && styles.activeDot]}
+              />
+            ))}
+          </View>
+        )}
       </View>
     </View>
   );
@@ -163,9 +183,9 @@ export const MobileHeroBanner: React.FC<MobileHeroBannerProps> = ({ items, item 
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    height: Platform.OS === 'web' ? 440 : 380,
+    height: Platform.OS === 'web' ? 460 : 400,
     position: 'relative',
-    backgroundColor: '#0f0f12',
+    backgroundColor: '#0b0c0f',
   },
   backdrop: {
     width: '100%',
@@ -173,125 +193,129 @@ const styles = StyleSheet.create({
   },
   gradientOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15, 15, 18, 0.45)',
+    backgroundColor: 'rgba(11, 12, 15, 0.4)',
     ...(Platform.OS === 'web'
       ? ({
-          backgroundImage: 'linear-gradient(to top, #0f0f12 0%, rgba(15, 15, 18, 0.4) 50%, rgba(15, 15, 18, 0.6) 100%)',
+          backgroundImage: 'linear-gradient(to top, #0b0c0f 0%, rgba(11, 12, 15, 0.5) 50%, transparent 100%)',
         } as any)
       : {}),
   },
-  arrowBtn: {
-    position: 'absolute',
-    top: '40%',
-    zIndex: 20,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-  },
-  arrowLeft: {
-    left: 12,
-  },
-  arrowRight: {
-    right: 12,
-  },
   contentContainer: {
     position: 'absolute',
-    bottom: 16,
+    bottom: 20,
     left: 16,
     right: 16,
     zIndex: 10,
   },
-  tagRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
-  },
-  ratingTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.4)',
-    gap: 4,
-  },
-  ratingText: {
-    color: '#f59e0b',
+  categoryKicker: {
+    color: '#9ca3af',
     fontSize: 11,
     fontWeight: '700',
-  },
-  qualityTag: {
-    backgroundColor: 'rgba(229, 9, 20, 0.25)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(229, 9, 20, 0.4)',
-  },
-  qualityText: {
-    color: '#e50914',
-    fontSize: 10,
-    fontWeight: '800',
+    letterSpacing: 2,
+    marginBottom: 4,
     textTransform: 'uppercase',
   },
   title: {
     color: '#ffffff',
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '900',
-    marginBottom: 4,
+    marginBottom: 6,
+    letterSpacing: -0.3,
+  },
+  metadataRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 8,
+  },
+  metadataText: {
+    color: '#e5e7eb',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  bulletSeparator: {
+    color: '#6b7280',
+    fontSize: 12,
+    fontWeight: '700',
   },
   overview: {
-    color: '#d1d5db',
+    color: '#9ca3af',
     fontSize: 12,
-    lineHeight: 16,
-    marginBottom: 12,
+    lineHeight: 17,
+    marginBottom: 16,
   },
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 12,
+    gap: 12,
+    marginBottom: 16,
   },
   watchButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#e50914',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 24,
-    gap: 6,
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 8,
+    shadowColor: '#ffffff',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
   },
   watchText: {
-    color: '#ffffff',
-    fontSize: 13,
+    color: '#000000',
+    fontSize: 14,
     fontWeight: '800',
+  },
+  downloadHeroButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(229, 9, 20, 0.85)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 9, 20, 0.5)',
+    gap: 6,
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(12px)',
+        } as any)
+      : {}),
+  },
+  downloadHeroText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
   },
   watchlistButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(24, 24, 31, 0.85)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
     gap: 6,
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(12px)',
+        } as any)
+      : {}),
   },
+
   watchlistActive: {
-    borderColor: '#10b981',
+    borderColor: 'rgba(16, 185, 129, 0.4)',
     backgroundColor: 'rgba(16, 185, 129, 0.15)',
   },
   watchlistText: {
     color: '#ffffff',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
   },
   watchlistActiveText: {
@@ -302,15 +326,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
+    marginTop: 4,
   },
   dot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.35)',
   },
   activeDot: {
     width: 24,
-    backgroundColor: '#e50914',
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#ffffff',
   },
 });
+

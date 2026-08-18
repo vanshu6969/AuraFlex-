@@ -75,7 +75,8 @@ export const isAnimeMedia = (item: MediaItem): boolean => {
   const isJapanese = origLang === 'ja' || originCountry.includes('JP');
 
   return (
-    (isAnimation && isJapanese) ||
+    isJapanese ||
+    isAnimation ||
     genres.includes('anime') ||
     titleLower.includes('daemons of the shadow realm') ||
     titleLower.includes('solo leveling') ||
@@ -84,9 +85,12 @@ export const isAnimeMedia = (item: MediaItem): boolean => {
     titleLower.includes('naruto') ||
     titleLower.includes('one piece') ||
     titleLower.includes('bleach') ||
-    titleLower.includes('attack on titan')
+    titleLower.includes('attack on titan') ||
+    titleLower.includes('dragon ball') ||
+    titleLower.includes('my hero academia')
   );
 };
+
 
 const SUB_FLAGS = 'sub=en&sub_lang=en&ds_lang=en&subtitles=1&cc_load_policy=1&auto_sub=1';
 
@@ -138,11 +142,12 @@ export const EMBED_SERVERS: EmbedServer[] = [
   },
   {
     id: 'youtube',
-    name: 'YouTube',
-    badge: 'YouTube Stream',
+    name: 'Backup',
+    badge: 'Backup Server',
     getUrl: () => 'about:blank',
   },
 ];
+
 
 export const MOCK_MEDIA_ITEMS: MediaItem[] = [
   {

@@ -66,7 +66,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.bg }]} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       {/* Featured Hero Banner */}
       {(trending.length > 0 || featured) && (
         <MobileHeroBanner items={trending.length > 0 ? trending : (featured ? [featured] : [])} />
@@ -80,14 +80,19 @@ export default function HomeScreen() {
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Continue Watching</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.continueList}>
-            {continueWatching.map((item) => (
+            {continueWatching.map((item, index) => (
               <ContinueWatchingCard
-                key={item.mediaId}
+                key={`${item.mediaId}-${index}`}
                 item={item}
-                onRemove={(id) => setContinueWatching((prev) => prev.filter((p) => String(p.mediaId) !== String(id)))}
+                onRemove={async (id) => {
+                  await storageService.removeProgress(id);
+                  setContinueWatching((prev) => prev.filter((p) => String(p.mediaId) !== String(id)));
+                }}
               />
+
             ))}
           </ScrollView>
+
         </View>
       )}
 
@@ -105,9 +110,13 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#0b0c0f',
+  },
+  scrollContent: {
+    paddingBottom: 90,
   },
   continueSection: {
-    marginVertical: 12,
+    marginVertical: 14,
     paddingHorizontal: 16,
   },
   sectionHeader: {
@@ -117,10 +126,13 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '800',
+    letterSpacing: -0.2,
   },
   continueList: {
-    gap: 12,
+    gap: 14,
+    paddingRight: 16,
   },
 });
+

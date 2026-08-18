@@ -19,12 +19,14 @@ export interface ResolveYouTubeResult {
 export interface DirectProxyStreamResult {
   success: boolean;
   directStreamUrl?: string;
+  mimeType?: string;
   subtitles?: { url: string; lang: string }[];
   title?: string;
   channel?: string;
   isHls?: boolean;
   fallbackToIframe?: boolean;
 }
+
 
 // Static lookup map for verified full episodes & global mirrors (Overrides)
 export const YOUTUBE_PRE_MAPPED_IDS: Record<string, Record<string, string>> = {

@@ -127,7 +127,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
                 <Text style={styles.userEmail}>{user.email}</Text>
                 <View style={styles.badgeRow}>
                   <Ionicons name="cloud-done" size={16} color="#10b981" />
-                  <Text style={styles.badgeText}>Supabase Cloud Sync Active</Text>
+                  <Text style={styles.badgeText}>Cloud Sync Active</Text>
+
                 </View>
               </View>
 

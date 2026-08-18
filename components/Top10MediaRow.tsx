@@ -26,8 +26,9 @@ export const Top10MediaRow: React.FC<Top10MediaRowProps> = ({
         horizontal
         showsHorizontalScrollIndicator={false}
         data={top10}
-        keyExtractor={(item) => String(item.id)}
+        keyExtractor={(item, index) => `top10-${item.id}-${index}`}
         contentContainerStyle={styles.carouselPadding}
+
         renderItem={({ item, index }) => (
           <View style={styles.top10Wrapper}>
             {/* Stylized Giant Netflix-style Rank Number */}

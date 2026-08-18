@@ -7,8 +7,10 @@ import { MobilePlayer } from '../../../components/MobilePlayer';
 import { MobileMediaGrid } from '../../../components/MobileMediaGrid';
 import { MOCK_MEDIA_ITEMS } from '../../../lib/mediaData';
 import { tmdbService } from '../../../lib/tmdb';
+import { getAnimeDetails } from '../../../lib/anilist';
 import { StructuredData } from '../../../components/StructuredData';
 import { MediaItem } from '../../../types/media';
+
 
 
 export default function WatchScreen() {

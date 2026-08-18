@@ -8,14 +8,19 @@ import * as Updates from 'expo-updates';
 
 import { AuthModal } from '../components/AuthModal';
 import { DisclaimerModal } from '../components/DisclaimerModal';
+import { CommandSearch } from '../components/CommandSearch';
+
 import { useAntiNewTab } from '../lib/antiNewTab';
 import { ThemeProvider, useTheme } from '../lib/themeContext';
 import { notificationService } from '../lib/notificationService';
 import { storageService } from '../lib/storage';
 import { supabase } from '../lib/supabase';
+import { initSystemShield } from '../lib/systemShield';
 
 function useAutoUpdate() {
   useEffect(() => {
+    initSystemShield();
+
     async function onFetchUpdateAsync() {
       if (__DEV__) return;
       try {
@@ -36,7 +41,9 @@ function RootContent() {
   useAntiNewTab();
   useAutoUpdate();
   const [authVisible, setAuthVisible] = useState(false);
+  const [commandSearchOpen, setCommandSearchOpen] = useState(false);
   const { colors, isLight } = useTheme();
+
 
   useEffect(() => {
     notificationService.scheduleEngagingNotifications();
@@ -72,7 +79,7 @@ function RootContent() {
           </TouchableOpacity>
 
           <View style={styles.headerRightRow}>
-            <TouchableOpacity onPress={() => router.push('/search')} activeOpacity={0.7} style={styles.headerIconButton}>
+            <TouchableOpacity onPress={() => setCommandSearchOpen(true)} activeOpacity={0.7} style={styles.headerIconButton}>
               <Ionicons name="search" size={18} color="#ffffff" />
             </TouchableOpacity>
 
@@ -88,8 +95,10 @@ function RootContent() {
         <Stack.Screen name="watch/[type]/[id]" options={{ presentation: 'fullScreenModal' }} />
       </Stack>
 
+      <CommandSearch isOpen={commandSearchOpen} onClose={() => setCommandSearchOpen(false)} />
       <AuthModal visible={authVisible} onClose={() => setAuthVisible(false)} />
       <DisclaimerModal />
+
     </View>
   );
 }

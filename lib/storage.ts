@@ -1,5 +1,7 @@
 import { safeStorage } from './storageAdapter';
 import { MediaItem, WatchProgress } from '../types/media';
+
+
 import { supabase } from './supabase';
 
 const LOCAL_WATCHLIST_KEY = '@vega_watchlist_store';
@@ -153,6 +155,9 @@ export const storageService = {
   },
 
   async saveProgress(
+
+
+
     media: MediaItem,
     currentTime: number,
     duration: number,
@@ -207,12 +212,35 @@ export const storageService = {
     } catch {}
   },
 
+  async removeProgress(mediaId: string | number): Promise<void> {
+    try {
+      const raw = await safeStorage.getItem(LOCAL_PROGRESS_KEY);
+      if (raw) {
+        const list: WatchProgress[] = JSON.parse(raw);
+        const filtered = list.filter((item) => String(item.mediaId) !== String(mediaId));
+        await safeStorage.setItem(LOCAL_PROGRESS_KEY, JSON.stringify(filtered));
+      }
+    } catch {}
+
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const user = session?.session?.user;
+      if (user) {
+        await supabase
+          .from('watch_progress')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('media_id', String(mediaId));
+      }
+    } catch {}
+
+    notifyStorageChange();
+  },
+
   async clearHistory(): Promise<boolean> {
     try {
       await safeStorage.removeItem(LOCAL_PROGRESS_KEY);
     } catch {}
-
-    notifyStorageChange();
 
     try {
       const { data: session } = await supabase.auth.getSession();
@@ -226,8 +254,10 @@ export const storageService = {
       }
     } catch {}
 
+    notifyStorageChange();
     return true;
   },
+
 
   // Sync offline storage with Supabase upon login
   async syncLocalToSupabase(): Promise<void> {
@@ -279,4 +309,35 @@ export const storageService = {
       console.warn('Sync local to Supabase failed:', e);
     }
   },
+
+  // Server and Watch State Persistence
+  async getPreferredServer(): Promise<string | null> {
+    try {
+      return await safeStorage.getItem('@auraflex_preferred_server');
+    } catch {
+      return null;
+    }
+  },
+
+  async setPreferredServer(serverId: string): Promise<void> {
+    try {
+      await safeStorage.setItem('@auraflex_preferred_server', serverId);
+    } catch {}
+  },
+
+  async getMediaWatchState(mediaId: string | number): Promise<{ season?: number; episode?: number; serverId?: string } | null> {
+    try {
+      const raw = await safeStorage.getItem(`@auraflex_state_${mediaId}`);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  },
+
+  async saveMediaWatchState(mediaId: string | number, state: { season?: number; episode?: number; serverId?: string }): Promise<void> {
+    try {
+      await safeStorage.setItem(`@auraflex_state_${mediaId}`, JSON.stringify(state));
+    } catch {}
+  },
 };
+

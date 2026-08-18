@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { WatchProgress } from '../types/media';
@@ -15,29 +15,26 @@ export const ContinueWatchingCard: React.FC<ContinueWatchingCardProps> = ({ item
   const isSeries = media?.media_type && media.media_type !== 'movie';
   const mediaType = media?.media_type || 'movie';
 
-  // Calculate watched percentage (default to 45% if not set)
-  let percent = 45;
+  // Calculate watched percentage (default to 65% if not set)
+  let percent = 65;
   if (item.currentTime && item.duration && item.duration > 0) {
     percent = Math.min(100, Math.max(10, Math.floor((item.currentTime / item.duration) * 100)));
   }
 
   const handleRemove = async (e: any) => {
     e?.stopPropagation?.();
+    await storageService.removeProgress(item.mediaId);
     if (onRemove) {
       onRemove(item.mediaId);
-    } else {
-      // Remove progress item
-      try {
-        const raw = await storageService.getContinueWatching();
-        const updated = raw.filter((p) => String(p.mediaId) !== String(item.mediaId));
-        await storageService.saveProgress(item.media, 0, 0, item.season, item.episode);
-      } catch (err) {}
     }
   };
 
+
+  const episodeTagText = isSeries ? `S${item.season || 1} • E${item.episode || 1}` : 'MOVIE';
+
   return (
     <TouchableOpacity
-      activeOpacity={0.85}
+      activeOpacity={0.88}
       onPress={() => router.push(`/watch/${mediaType}/${item.mediaId}`)}
       style={styles.card}
     >
@@ -49,19 +46,15 @@ export const ContinueWatchingCard: React.FC<ContinueWatchingCardProps> = ({ item
           resizeMode="cover"
         />
 
-        {/* Dark Vignette Gradient Overlay */}
+        {/* Dark Vignette Overlay */}
         <View style={styles.vignetteOverlay} />
 
         {/* Top Header Badge Row */}
         <View style={styles.topBadgeRow}>
+          {/* Episode Tag in Clean Dark Pill */}
           <View style={styles.typeBadge}>
-            <Ionicons
-              name={isSeries ? 'tv-outline' : 'film-outline'}
-              size={11}
-              color={isSeries ? '#ff3b47' : '#38bdf8'}
-            />
-            <Text style={[styles.typeBadgeText, { color: isSeries ? '#ff3b47' : '#38bdf8' }]}>
-              {isSeries ? `S${item.season || 1} • E${item.episode || 1}` : 'MOVIE'}
+            <Text style={styles.typeBadgeText}>
+              {episodeTagText}
             </Text>
           </View>
 
@@ -75,7 +68,7 @@ export const ContinueWatchingCard: React.FC<ContinueWatchingCardProps> = ({ item
         {/* Center Play Button Overlay */}
         <View style={styles.centerPlayOverlay}>
           <View style={styles.playGlowCircle}>
-            <Ionicons name="play" size={18} color="#ffffff" style={{ marginLeft: 2 }} />
+            <Ionicons name="play" size={16} color="#ffffff" style={{ marginLeft: 2 }} />
           </View>
         </View>
 
@@ -106,17 +99,17 @@ export const ContinueWatchingCard: React.FC<ContinueWatchingCardProps> = ({ item
 
 const styles = StyleSheet.create({
   card: {
-    width: 230,
+    width: 220,
     backgroundColor: '#14141d',
-    borderRadius: 12,
+    borderRadius: 16, // rounded-2xl
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 5,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 6,
   },
   imageBox: {
     width: '100%',
@@ -143,17 +136,20 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   typeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(10, 10, 15, 0.85)',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(8px)',
+        } as any)
+      : {}),
   },
   typeBadgeText: {
+    color: 'rgba(255, 255, 255, 0.95)',
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.5,
@@ -162,7 +158,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -175,36 +171,38 @@ const styles = StyleSheet.create({
     zIndex: 5,
   },
   playGlowCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#e50914',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(229, 9, 20, 0.9)',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#e50914',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowRadius: 8,
+    elevation: 6,
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
+    borderColor: 'rgba(255, 255, 255, 0.5)',
   },
   progressBarBackground: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    height: 3.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     zIndex: 15,
   },
   progressBarFill: {
     height: '100%',
     backgroundColor: '#e50914',
+    borderRadius: 2,
   },
   infoBox: {
     paddingHorizontal: 12,
     paddingVertical: 10,
+    backgroundColor: '#14141d',
   },
   titleText: {
     color: '#ffffff',
@@ -219,13 +217,14 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   subtitleText: {
-    color: '#ff3b47',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  percentText: {
     color: '#9ca3af',
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '600',
   },
+  percentText: {
+    color: '#e50914',
+    fontSize: 10,
+    fontWeight: '800',
+  },
 });
+

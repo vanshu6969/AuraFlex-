@@ -23,11 +23,13 @@
     "components/**/*.ts",
     "components/**/*.tsx",
     "lib/**/*.ts",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts"
+    "types/**/*.ts",
+    "expo-env.d.ts",
+    ".expo/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
+    ".expo",
     "src"
   ],
   "extends": "expo/tsconfig.base"

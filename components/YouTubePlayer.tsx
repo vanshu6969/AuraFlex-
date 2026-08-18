@@ -279,7 +279,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
                 style={styles.primaryPlayBtn}
               >
                 <Ionicons name="play" size={20} color="#ffffff" />
-                <Text style={styles.primaryPlayBtnText}>Open & Watch in YouTube App</Text>
+                <Text style={styles.primaryPlayBtnText}>Open & Watch Backup Stream</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -288,39 +288,43 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
           <View style={styles.bottomControlBar}>
             {onSwitchServer && (
               <TouchableOpacity onPress={onSwitchServer} style={styles.controlBtn}>
-                <Ionicons name="swap-horizontal" size={14} color="#e50914" />
-                <Text style={[styles.controlBtnText, { color: '#e50914' }]}>Switch Server (Backup)</Text>
+                <Ionicons name="swap-horizontal" size={16} color="#38bdf8" />
+                <Text style={styles.controlBtnText}>Switch Server</Text>
               </TouchableOpacity>
             )}
 
-            {activeVideoId && (
-              <TouchableOpacity
-                onPress={() => openInvidiousProxy(activeVideoId)}
-                style={styles.controlBtn}
-              >
-                <Ionicons name="globe-outline" size={14} color="#38bdf8" />
-                <Text style={styles.controlBtnText}>Invidious Proxy</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              onPress={() =>
+                openYouTubeSearch(
+                  `${media.title} full ${media.media_type === 'tv' ? `S${season}E${episode}` : 'movie'}`
+                )
+              }
+              style={styles.controlBtn}
+            >
+              <Ionicons name="search" size={16} color="#a855f7" />
+              <Text style={styles.controlBtnText}>Search Stream</Text>
+            </TouchableOpacity>
+
 
             <TouchableOpacity onPress={() => setShowDrawer(true)} style={styles.controlBtn}>
-              <Ionicons name="link" size={14} color="#a855f7" />
-              <Text style={styles.controlBtnText}>Custom Link / ID</Text>
+              <Ionicons name="create-outline" size={16} color="#10b981" />
+              <Text style={styles.controlBtnText}>Custom Link</Text>
             </TouchableOpacity>
           </View>
         </View>
-      ) : !loading ? (
-        /* Fallback UI: Embedding Disabled (Error 150/101) or No Stream Found */
+      ) : null}
+
+      {/* Fallback Screen */}
+      {!loading && !activeVideoId ? (
         <View style={styles.fallbackContainer}>
-          <Ionicons name="lock-closed" size={48} color="#f59e0b" />
-          <Text style={styles.fallbackTitle}>
-            {embedDisabledError ? 'Embedding Disabled by Video Owner (Error 150)' : 'No Stream Found'}
-          </Text>
+          <Ionicons name="film-outline" size={48} color="#e50914" />
+          <Text style={styles.fallbackTitle}>No Direct Video Stream Loaded</Text>
           <Text style={styles.fallbackSub}>
             {embedDisabledError
-              ? 'The owner of this video has disabled third-party website embedding. You can watch it directly on YouTube or switch to a backup server.'
+              ? 'The owner of this video has restricted third-party web playback. You can watch it directly or switch to another server.'
               : `No long-form video stream found for ${media.title}.`}
           </Text>
+
 
           <View style={styles.fallbackActions}>
             {activeVideoId && (
@@ -328,15 +332,15 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
                 onPress={() => openYouTubeVideo(activeVideoId)}
                 style={styles.primaryPlayBtn}
               >
-                <Ionicons name="logo-youtube" size={18} color="#ffffff" />
-                <Text style={styles.primaryPlayBtnText}>Watch Directly on YouTube App</Text>
+                <Ionicons name="play-circle" size={18} color="#ffffff" />
+                <Text style={styles.primaryPlayBtnText}>Watch Direct Stream</Text>
               </TouchableOpacity>
             )}
 
             {onSwitchServer && (
               <TouchableOpacity onPress={onSwitchServer} style={styles.secondaryBtn}>
                 <Ionicons name="swap-horizontal" size={18} color="#38bdf8" />
-                <Text style={styles.secondaryBtnText}>Switch to Backup Mirror Server</Text>
+                <Text style={styles.secondaryBtnText}>Switch to HD Mirror Server</Text>
               </TouchableOpacity>
             )}
 
@@ -346,7 +350,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
                 style={styles.darkOutlineBtn}
               >
                 <Ionicons name="globe-outline" size={18} color="#38bdf8" />
-                <Text style={styles.darkOutlineBtnText}>Open Web Proxy (Invidious)</Text>
+                <Text style={styles.darkOutlineBtnText}>Open Web Proxy</Text>
               </TouchableOpacity>
             )}
 
@@ -368,14 +372,14 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         <View style={styles.modalOverlay}>
           <View style={styles.drawerContent}>
             <View style={styles.drawerHeader}>
-              <Text style={styles.drawerTitle}>Supply Custom YouTube Stream</Text>
+              <Text style={styles.drawerTitle}>Supply Custom Stream Link</Text>
               <TouchableOpacity onPress={() => setShowDrawer(false)}>
                 <Ionicons name="close" size={24} color="#9ca3af" />
               </TouchableOpacity>
             </View>
 
             <Text style={styles.drawerDesc}>
-              Paste any YouTube URL (watch?v=, youtu.be/, embed/) or 11-char Video ID to stream it directly.
+              Paste any video URL or Video ID to stream it directly.
             </Text>
 
             <TextInput

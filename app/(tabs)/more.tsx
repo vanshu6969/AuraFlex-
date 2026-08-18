@@ -1,23 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, Modal } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  Alert,
+  Modal,
+  Platform,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { router } from 'expo-router';
 import { useTheme } from '../../lib/themeContext';
 import { AuthModal } from '../../components/AuthModal';
 import { ReportRequestModal } from '../../components/ReportRequestModal';
+import { AboutModal } from '../../components/AboutModal';
+import { PlaybackSettingsModal } from '../../components/PlaybackSettingsModal';
 
-interface MenuItem {
-  title: string;
-  iconName: keyof typeof Ionicons.glyphMap;
-  action?: () => void;
-}
+
 
 export default function MoreScreen() {
   const [user, setUser] = useState<any>(null);
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showProvidersModal, setShowProvidersModal] = useState(false);
-  const [showDownloadsModal, setShowDownloadsModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showReportRequestModal, setShowReportRequestModal] = useState(false);
   const [reportRequestTab, setReportRequestTab] = useState<'report' | 'request'>('report');
@@ -43,7 +49,11 @@ export default function MoreScreen() {
       }
       await supabase.auth.signOut();
       setUser(null);
-      Alert.alert('Signed Out', 'You have been signed out successfully.');
+      if (Platform.OS === 'web') {
+        alert('Signed Out: You have been signed out successfully.');
+      } else {
+        Alert.alert('Signed Out', 'You have been signed out successfully.');
+      }
     } catch (error) {
       console.error('Sign out error:', error);
       setUser(null);
@@ -55,39 +65,38 @@ export default function MoreScreen() {
     setShowReportRequestModal(true);
   };
 
-  const menuItems: MenuItem[] = [
-    { title: 'Report or Request Movie / Series', iconName: 'megaphone-outline', action: () => openModalWithTab('report') },
-    { title: 'Preferences', iconName: 'options-outline', action: () => router.push('/settings/preferences' as any) },
-    { title: 'Watch History', iconName: 'time-outline', action: () => router.push('/history') },
-    { title: 'Downloads', iconName: 'download-outline', action: () => setShowDownloadsModal(true) },
-    { title: 'Streaming Providers', iconName: 'tv-outline', action: () => setShowProvidersModal(true) },
-    { title: 'TV Pairing', iconName: 'hardware-chip-outline', action: () => Alert.alert('TV Pairing', 'Chromecast and Smart TV pairing ready via player controls.') },
-    { title: 'About AuraFlex', iconName: 'information-circle-outline', action: () => setShowAboutModal(true) },
-  ];
-
-  const handleItemPress = (item: MenuItem) => {
-    if (item.action) {
-      item.action();
-    }
-  };
+  const userInitial = user?.email ? user.email.charAt(0).toUpperCase() : 'U';
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.bg }]} contentContainerStyle={styles.contentPadding} showsVerticalScrollIndicator={false}>
-      <Text style={[styles.headerTitle, { color: colors.text }]}>More</Text>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.bg }]}
+      contentContainerStyle={styles.contentPadding}
+      showsVerticalScrollIndicator={false}
+    >
+      <Text style={[styles.headerTitle, { color: colors.text }]}>Settings & Account</Text>
 
-      {/* Account Profile Card or Guest Banner */}
+      {/* 1. Account Profile Card or Guest Sync Card */}
       {user ? (
-        <View style={[styles.userCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Ionicons name="person-circle" size={42} color="#e50914" />
-          <View style={styles.userInfo}>
-            <Text style={[styles.userName, { color: colors.text }]}>{user.email}</Text>
-            <Text style={styles.userStatus}>Supabase Cloud Sync Active</Text>
+        <View style={styles.profileCard}>
+          <View style={styles.avatarCircle}>
+            <Text style={styles.avatarText}>{userInitial}</Text>
+          </View>
+
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileEmail} numberOfLines={1}>
+              {user.email}
+            </Text>
+            <View style={styles.syncBadgeRow}>
+              <View style={styles.greenPulseDot} />
+              <Text style={styles.syncBadgeText}>Cloud Sync Active</Text>
+            </View>
+
           </View>
         </View>
       ) : (
         <TouchableOpacity
           onPress={() => setShowAuthModal(true)}
-          activeOpacity={0.8}
+          activeOpacity={0.85}
           style={styles.guestCard}
         >
           <View style={styles.guestLeft}>
@@ -105,139 +114,148 @@ export default function MoreScreen() {
         </TouchableOpacity>
       )}
 
-      <View style={styles.menuGroup}>
-        {menuItems.map((item, index) => (
-          <TouchableOpacity
-            key={index}
-            onPress={() => handleItemPress(item)}
-            activeOpacity={0.7}
-            style={[styles.menuItem, { backgroundColor: colors.card, borderColor: colors.border }]}
-          >
-            <View style={styles.menuItemLeft}>
-              <Ionicons name={item.iconName} size={20} color={item.title.includes('Report') ? '#e50914' : colors.textSub} />
-              <Text style={[styles.menuItemTitle, { color: item.title.includes('Report') ? '#e50914' : colors.text }]}>{item.title}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={colors.textSub} />
-          </TouchableOpacity>
-        ))}
+      {/* 2. Featured Action Card: Report or Request */}
+      <TouchableOpacity
+        onPress={() => openModalWithTab('report')}
+        activeOpacity={0.88}
+        style={styles.featuredActionCard}
+      >
+        <View style={styles.featuredIconPod}>
+          <Ionicons name="megaphone" size={20} color="#e50914" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.featuredTitle}>Report or Request Media</Text>
+          <Text style={styles.featuredSub}>Request missing titles or report broken servers</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
+      </TouchableOpacity>
 
-        {user && (
+      {/* 3. Section Group 1: Media & Preferences */}
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionHeaderTitle}>MEDIA & PREFERENCES</Text>
+        <View style={styles.cardGroup}>
           <TouchableOpacity
-            onPress={handleSignOut}
-            activeOpacity={0.7}
-            style={styles.signOutBtn}
+            onPress={() => router.push('/history')}
+            activeOpacity={0.75}
+            style={styles.groupRowItem}
           >
-            <View style={styles.menuItemLeft}>
-              <Ionicons name="log-out-outline" size={20} color="#ef4444" />
-              <Text style={styles.signOutText}>Sign Out</Text>
+            <View style={styles.rowIconPod}>
+              <Ionicons name="time-outline" size={18} color="#38bdf8" />
             </View>
-            <Ionicons name="chevron-forward" size={16} color="rgba(239, 68, 68, 0.6)" />
+            <View style={styles.rowTextGroup}>
+              <Text style={styles.rowTitle}>Watch History</Text>
+              <Text style={styles.rowSub}>Resume watching & clear progress log</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
           </TouchableOpacity>
-        )}
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            onPress={() => router.push('/settings/preferences' as any)}
+            activeOpacity={0.75}
+            style={styles.groupRowItem}
+          >
+            <View style={styles.rowIconPod}>
+              <Ionicons name="options-outline" size={18} color="#a855f7" />
+            </View>
+            <View style={styles.rowTextGroup}>
+              <Text style={styles.rowTitle}>Playback Preferences</Text>
+              <Text style={styles.rowSub}>Default server, video quality & captions</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            onPress={() => setShowProvidersModal(true)}
+            activeOpacity={0.75}
+            style={styles.groupRowItem}
+          >
+            <View style={styles.rowIconPod}>
+              <Ionicons name="tv-outline" size={18} color="#10b981" />
+            </View>
+            <View style={styles.rowTextGroup}>
+              <Text style={styles.rowTitle}>Streaming Providers</Text>
+              <Text style={styles.rowSub}>Explore integrated embed mirrors & sources</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Supabase Authentication Modal */}
+      {/* 4. Section Group 2: System & Ecosystem */}
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionHeaderTitle}>SYSTEM & ECOSYSTEM</Text>
+        <View style={styles.cardGroup}>
+          <TouchableOpacity
+            onPress={() =>
+              Platform.OS === 'web'
+                ? alert('TV Pairing: Chromecast & Smart TV pairing ready via player controls.')
+                : Alert.alert('TV Pairing', 'Chromecast and Smart TV pairing ready via player controls.')
+            }
+            activeOpacity={0.75}
+            style={styles.groupRowItem}
+          >
+            <View style={styles.rowIconPod}>
+              <Ionicons name="hardware-chip-outline" size={18} color="#f59e0b" />
+            </View>
+            <View style={styles.rowTextGroup}>
+              <Text style={styles.rowTitle}>TV Pairing & Remote Cast</Text>
+              <Text style={styles.rowSub}>Smart TV, DLNA & Chromecast setup</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            onPress={() => setShowAboutModal(true)}
+            activeOpacity={0.75}
+            style={styles.groupRowItem}
+          >
+            <View style={styles.rowIconPod}>
+              <Ionicons name="information-circle-outline" size={18} color="#ec4899" />
+            </View>
+            <View style={styles.rowTextGroup}>
+              <Text style={styles.rowTitle}>About AuraFlex</Text>
+              <Text style={styles.rowSub}>App version v1.0.0, terms & legal info</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* 5. Clean Red Outline Sign Out Action */}
+      {user && (
+        <TouchableOpacity
+          onPress={handleSignOut}
+          activeOpacity={0.8}
+          style={styles.signOutBtn}
+        >
+          <Ionicons name="log-out-outline" size={18} color="#ef4444" />
+          <Text style={styles.signOutText}>Sign Out of AuraFlex</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Auth Modal */}
       <AuthModal visible={showAuthModal} onClose={() => setShowAuthModal(false)} />
 
-      {/* Report & Request Media Modal */}
+      {/* Report or Request Modal */}
       <ReportRequestModal
         visible={showReportRequestModal}
         onClose={() => setShowReportRequestModal(false)}
         initialTab={reportRequestTab}
       />
 
-      {/* Downloads Modal */}
-      <Modal
-        visible={showDownloadsModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowDownloadsModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <TouchableOpacity
-              style={[styles.modalCloseBtn, { backgroundColor: colors.bg }]}
-              onPress={() => setShowDownloadsModal(false)}
-            >
-              <Ionicons name="close" size={22} color={colors.textSub} />
-            </TouchableOpacity>
+      {/* About Modal */}
+      <AboutModal isOpen={showAboutModal} onClose={() => setShowAboutModal(false)} />
 
-            <View style={styles.modalHeader}>
-              <View style={styles.logoBadge}>
-                <Ionicons name="download-outline" size={28} color="#e50914" />
-              </View>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Offline Downloads</Text>
-              <Text style={[styles.modalVersion, { color: '#e50914', fontWeight: '800' }]}>🚀 Coming Soon</Text>
-            </View>
 
-            <Text style={[styles.modalDescription, { color: colors.textSub }]}>
-              Offline video downloading for offline playback will be unlocked in the next live update!
-            </Text>
-          </View>
-        </View>
-      </Modal>
+      {/* Playback & Player Engine Settings Modal */}
+      <PlaybackSettingsModal isOpen={showProvidersModal} onClose={() => setShowProvidersModal(false)} />
 
-      {/* Streaming Providers Modal */}
-      <Modal
-        visible={showProvidersModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowProvidersModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <TouchableOpacity
-              style={[styles.modalCloseBtn, { backgroundColor: colors.bg }]}
-              onPress={() => setShowProvidersModal(false)}
-            >
-              <Ionicons name="close" size={22} color={colors.textSub} />
-            </TouchableOpacity>
-
-            <View style={styles.modalHeader}>
-              <View style={styles.logoBadge}>
-                <Ionicons name="tv-outline" size={28} color="#e50914" />
-              </View>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Streaming Providers</Text>
-              <Text style={[styles.modalVersion, { color: '#e50914', fontWeight: '800' }]}>🚀 Coming Soon</Text>
-            </View>
-
-            <Text style={[styles.modalDescription, { color: colors.textSub }]}>
-              Additional 4K Ultra HD Premium Servers and multi-language provider mirrors will be unlocked in the next live update!
-            </Text>
-          </View>
-        </View>
-      </Modal>
-
-      {/* About AuraFlex Modal */}
-      <Modal
-        visible={showAboutModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowAboutModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <TouchableOpacity
-              style={[styles.modalCloseBtn, { backgroundColor: colors.bg }]}
-              onPress={() => setShowAboutModal(false)}
-            >
-              <Ionicons name="close" size={22} color={colors.textSub} />
-            </TouchableOpacity>
-
-            <View style={styles.modalHeader}>
-              <View style={styles.logoBadge}>
-                <Ionicons name="film" size={28} color="#e50914" />
-              </View>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>AuraFlex</Text>
-              <Text style={[styles.modalVersion, { color: colors.textSub }]}>Version 1.0.0</Text>
-            </View>
-
-            <Text style={[styles.modalDescription, { color: colors.textSub }]}>
-              AuraFlex is a high-performance cinema, TV series, and anime streaming platform designed to provide a premium viewing experience with anti-popup shields and multi-server playback.
-            </Text>
-          </View>
-        </View>
-      </Modal>
     </ScrollView>
   );
 }
@@ -245,49 +263,83 @@ export default function MoreScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#0b0c0f',
   },
   contentPadding: {
-    padding: 16,
-    paddingBottom: 32,
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 90,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: '900',
+    color: '#ffffff',
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: -0.4,
     marginBottom: 16,
-    letterSpacing: 0.5,
   },
-  userCard: {
+  profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#12141a',
+    borderRadius: 18,
     padding: 16,
-    borderRadius: 16,
     borderWidth: 1,
-    marginBottom: 20,
-    gap: 12,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    gap: 14,
+    marginBottom: 16,
   },
-  userInfo: {
-    flex: 1,
+  avatarCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#e50914',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#e50914',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
   },
-  userName: {
-    fontSize: 16,
+  avatarText: {
+    color: '#ffffff',
+    fontSize: 20,
     fontWeight: '800',
   },
-  userStatus: {
+  profileInfo: {
+    flex: 1,
+  },
+  profileEmail: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  syncBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  greenPulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10b981',
+  },
+  syncBadgeText: {
     color: '#10b981',
     fontSize: 12,
     fontWeight: '600',
-    marginTop: 2,
   },
   guestCard: {
+    backgroundColor: '#12141a',
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 9, 20, 0.3)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#18181f',
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(229, 9, 20, 0.3)',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   guestLeft: {
     flexDirection: 'row',
@@ -296,17 +348,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   guestIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(229, 9, 20, 0.15)',
-    justifyContent: 'center',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(229, 9, 20, 0.12)',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   guestTitle: {
     color: '#ffffff',
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   guestSub: {
     color: '#9ca3af',
@@ -315,44 +367,106 @@ const styles = StyleSheet.create({
   },
   signInBadge: {
     backgroundColor: '#e50914',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    marginLeft: 8,
   },
   signInBadgeText: {
     color: '#ffffff',
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
   },
-  menuGroup: {
-    gap: 10,
-  },
-  menuItem: {
+  featuredActionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    backgroundColor: '#12141a',
+    borderRadius: 18,
     padding: 16,
-    borderRadius: 14,
     borderWidth: 1,
+    borderColor: 'rgba(229, 9, 20, 0.35)',
+    gap: 14,
+    marginBottom: 20,
   },
-  menuItemLeft: {
+  featuredIconPod: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: 'rgba(229, 9, 20, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  featuredTitle: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  featuredSub: {
+    color: '#9ca3af',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  sectionContainer: {
+    marginBottom: 20,
+  },
+  sectionHeaderTitle: {
+    color: '#6b7280',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  cardGroup: {
+    backgroundColor: '#12141a',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    overflow: 'hidden',
+  },
+  groupRowItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 14,
   },
-  menuItemTitle: {
+  rowIconPod: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowTextGroup: {
+    flex: 1,
+  },
+  rowTitle: {
+    color: '#ffffff',
     fontSize: 14,
     fontWeight: '700',
+  },
+  rowSub: {
+    color: '#9ca3af',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   signOutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    borderRadius: 14,
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
     borderWidth: 1,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderColor: 'rgba(239, 68, 68, 0.25)',
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderRadius: 14,
+    paddingVertical: 14,
+    marginTop: 10,
   },
   signOutText: {
     color: '#ef4444',
@@ -362,53 +476,60 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
     padding: 20,
   },
   modalCard: {
-    width: '100%',
-    maxWidth: 400,
+    backgroundColor: '#12141a',
     borderRadius: 20,
     padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
     borderWidth: 1,
-    position: 'relative',
-  },
-  modalCloseBtn: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalHeader: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  logoBadge: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(229, 9, 20, 0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   modalTitle: {
-    fontSize: 22,
-    fontWeight: '900',
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '800',
+    marginTop: 12,
   },
-  modalVersion: {
+  modalSub: {
+    color: '#e50914',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     marginTop: 2,
   },
-  modalDescription: {
+  modalBody: {
+    color: '#9ca3af',
     fontSize: 13,
-    lineHeight: 20,
     textAlign: 'center',
+    marginTop: 12,
+    lineHeight: 18,
+  },
+  providerList: {
+    marginTop: 14,
+    alignSelf: 'stretch',
+    gap: 6,
+  },
+  providerItem: {
+    color: '#d1d5db',
+    fontSize: 13,
+  },
+  modalCloseBtn: {
+    backgroundColor: '#e50914',
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginTop: 20,
+    width: '100%',
+    alignItems: 'center',
+  },
+  modalCloseText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '800',
   },
 });

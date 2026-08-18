@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Image, ScrollView, StyleSheet, ActivityIndicator, Alert, Platform } from 'react-native';
+
 
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -37,22 +38,37 @@ export default function WatchHistoryScreen() {
     }
   };
 
-  const handleClearAll = () => {
-    Alert.alert(
-      'Clear Watch History',
-      'Are you sure you want to clear your watch history?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear All',
-          style: 'destructive',
-          onPress: async () => {
-            await storageService.clearHistory();
-            setHistory([]);
+  const handleClearAll = async () => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const confirmed = window.confirm('Are you sure you want to clear your watch history?');
+      if (confirmed) {
+        await storageService.clearHistory();
+        setHistory([]);
+      }
+    } else {
+      Alert.alert(
+        'Clear Watch History',
+        'Are you sure you want to clear your watch history?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Clear All',
+            style: 'destructive',
+            onPress: async () => {
+              await storageService.clearHistory();
+              setHistory([]);
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
+  };
+
+
+  const handleRemoveItem = async (mediaId: string | number, e: any) => {
+    e?.stopPropagation?.();
+    await storageService.removeProgress(mediaId);
+    setHistory((prev) => prev.filter((item) => String(item.mediaId) !== String(mediaId)));
   };
 
   return (
@@ -96,17 +112,26 @@ export default function WatchHistoryScreen() {
 
             return (
               <TouchableOpacity
-                key={index}
+                key={`${item.mediaId}-${index}`}
                 onPress={() => router.push(`/watch/${mediaType}/${item.mediaId}`)}
                 activeOpacity={0.8}
                 style={[styles.historyCard, { backgroundColor: colors.card, borderColor: colors.border }]}
               >
-                <Image source={{ uri: item.media?.poster_path }} style={styles.posterImg} />
+                <Image source={{ uri: item.media?.poster_path || item.media?.backdrop_path }} style={styles.posterImg} />
 
                 <View style={styles.cardInfo}>
-                  <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
-                    {item.media?.title}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={[styles.cardTitle, { color: colors.text, flex: 1 }]} numberOfLines={1}>
+                      {item.media?.title}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={(e) => handleRemoveItem(item.mediaId, e)}
+                      style={{ padding: 4 }}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="close" size={16} color="#9ca3af" />
+                    </TouchableOpacity>
+                  </View>
 
                   {mediaType !== 'movie' ? (
                     <Text style={styles.epSub}>
@@ -131,6 +156,7 @@ export default function WatchHistoryScreen() {
     </ScrollView>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {

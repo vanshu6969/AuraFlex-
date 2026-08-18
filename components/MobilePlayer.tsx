@@ -10,10 +10,18 @@ import { storageService } from '../lib/storage';
 import { tmdbService } from '../lib/tmdb';
 import { ReportRequestModal } from './ReportRequestModal';
 import { YouTubePlayer } from './YouTubePlayer';
+import { EpisodeSlider } from './EpisodeSlider';
+
 
 interface MobilePlayerProps {
+
+
   media: MediaItem;
+  season?: number;
+  episode?: number;
 }
+
+
 
 const adBlockScript = `
   (function() {
@@ -39,7 +47,7 @@ const adBlockScript = `
   true;
 `;
 
-export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
+export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initialSeason = 1, episode: initialEpisode = 1 }) => {
   const isPunjabi = isPunjabiMedia(media);
   const isKdrama = isKdramaOrCdrama(media);
   const isAnime = isAnimeMedia(media);
@@ -50,15 +58,17 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
     : isKdrama
     ? EMBED_SERVERS.filter((s) => s.id === 'nontongo' || s.id === 'youtube')
     : isAnime
-    ? EMBED_SERVERS.filter((s) => s.id === 'anime' || s.id === 'videasy' || s.id === 'embedmaster' || s.id === 'youtube')
+    ? EMBED_SERVERS.filter((s) => s.id === 'anime')
     : EMBED_SERVERS.filter((s) => s.id !== 'nontongo' && s.id !== 'anime');
+
 
   const [activeServerId, setActiveServerId] = useState(() =>
     isPunjabi ? 'flmu' : isKdrama ? 'nontongo' : isAnime ? 'anime' : EMBED_SERVERS[0].id
   );
 
-  const [season, setSeason] = useState(1);
-  const [episode, setEpisode] = useState(1);
+  const [season, setSeason] = useState(initialSeason);
+  const [episode, setEpisode] = useState(initialEpisode);
+
   const [seasons, setSeasons] = useState<Array<{ season_number: number; episode_count: number; name: string }>>([
     { season_number: 1, episode_count: 10, name: 'Season 1' },
   ]);
@@ -71,6 +81,8 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const [showAdShield, setShowAdShield] = useState(true);
   const [showReportModal, setShowReportModal] = useState(false);
+
+
   const [anilistId, setAnilistId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -104,17 +116,55 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
     }, 2500);
   };
 
+  // Restore watch state & preferred server on mount / media change
   useEffect(() => {
-    if (isPunjabi) {
-      setActiveServerId('flmu');
-    } else if (isKdrama) {
-      setActiveServerId('nontongo');
-    } else if (isAnime) {
-      setActiveServerId('anime');
-    } else {
-      setActiveServerId(EMBED_SERVERS[0].id);
+    let isMounted = true;
+    const restoreState = async () => {
+      try {
+        const savedState = await storageService.getMediaWatchState(media.id);
+        const preferredServer = await storageService.getPreferredServer();
+
+        if (!isMounted) return;
+
+        if (savedState) {
+          if (savedState.season) setSeason(savedState.season);
+          if (savedState.episode) setEpisode(savedState.episode);
+          if (savedState.serverId && availableServers.some((s) => s.id === savedState.serverId)) {
+            setActiveServerId(savedState.serverId);
+            return;
+          }
+        }
+
+        if (preferredServer && availableServers.some((s) => s.id === preferredServer)) {
+          setActiveServerId(preferredServer);
+        } else if (isPunjabi) {
+          setActiveServerId('flmu');
+        } else if (isKdrama) {
+          setActiveServerId('nontongo');
+        } else if (isAnime) {
+          setActiveServerId('anime');
+        } else {
+          setActiveServerId('videasy');
+        }
+      } catch (e) {}
+    };
+
+    restoreState();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [media.id, isPunjabi, isKdrama, isAnime]);
+
+  // Persist watch state & preferred server on change
+  useEffect(() => {
+    if (media.id) {
+      storageService.saveMediaWatchState(media.id, { season, episode, serverId: activeServerId });
+      storageService.setPreferredServer(activeServerId);
+      storageService.saveProgress(media, 0, 0, season, episode);
     }
-  }, [media, isPunjabi, isKdrama, isAnime]);
+  }, [media.id, season, episode, activeServerId]);
+
 
   useEffect(() => {
     storageService.isInWatchlist(media.id).then(setIsInWatchlist);
@@ -209,10 +259,10 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
           <TouchableOpacity
             onPress={() => setShowReportModal(true)}
             style={styles.actionBtnHeader}
-            title="Report Broken Video"
           >
             <Ionicons name="flag-outline" size={16} color="#ef4444" />
           </TouchableOpacity>
+
           <TouchableOpacity
             onPress={toggleWatchlist}
             style={[styles.bookmarkBtn, isInWatchlist && styles.bookmarkActive]}
@@ -225,6 +275,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
           </TouchableOpacity>
         </View>
       </View>
+
 
       {/* Multi-Server Selector Chips */}
       <View style={styles.serverRow}>
@@ -244,6 +295,12 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
           );
         })}
       </View>
+
+
+
+
+
+
 
       {/* Embedded Fullscreen Video Player Container */}
       <View style={styles.playerContainer}>
@@ -278,8 +335,9 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
             ) : (
               <>
                 {loading && (
-                  <View style={styles.loadingOverlay} pointerEvents="none">
+                  <View style={[styles.loadingOverlay, { pointerEvents: 'none' }]}>
                     <ActivityIndicator size="large" color="#e50914" />
+
                     <Text style={styles.loadingText}>Connecting to {currentServer.name}...</Text>
                   </View>
                 )}
@@ -338,59 +396,21 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media }) => {
         )}
       </View>
 
-      {/* TV Series / Anime Series Season & Episode Selection */}
+      {/* TV Series / Anime Series Season & Episode Selector Slider */}
       {isSeries && (
-        <View style={styles.tvSection}>
-          <View style={styles.tvHeader}>
-            <Text style={styles.tvTitle}>EPISODES ({episodes.length})</Text>
-            <View style={styles.seasonRow}>
-              <Text style={styles.seasonLabel}>Season:</Text>
-              {seasons.map((s) => (
-                <TouchableOpacity
-                  key={s.season_number}
-                  onPress={() => {
-                    setSeason(s.season_number);
-                    setEpisode(1);
-                    setHasError(false);
-                    setLoading(true);
-                  }}
-                  style={[styles.seasonChip, season === s.season_number && styles.seasonChipActive]}
-                >
-                  <Text style={[styles.seasonText, season === s.season_number && styles.seasonTextActive]}>
-                    S{s.season_number}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {loadingEpisodes ? (
-            <View style={{ padding: 16, alignItems: 'center' }}>
-              <ActivityIndicator size="small" color="#e50914" />
-            </View>
-          ) : (
-            <View style={styles.epGrid}>
-              {episodes.map((ep) => {
-                const epNum = ep.episode_number;
-                const isActive = episode === epNum;
-                return (
-                  <TouchableOpacity
-                    key={epNum}
-                    onPress={() => {
-                      setEpisode(epNum);
-                      setHasError(false);
-                      setLoading(true);
-                    }}
-                    style={[styles.epChip, isActive && styles.epChipActive]}
-                  >
-                    <Text style={[styles.epText, isActive && styles.epTextActive]}>EP {epNum}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          )}
-        </View>
+        <EpisodeSlider
+          tmdbId={media.id}
+          currentSeason={season}
+          currentEpisode={episode}
+          onSelectEpisode={(s, e) => {
+            setSeason(s);
+            setEpisode(e);
+            setHasError(false);
+            setLoading(true);
+          }}
+        />
       )}
+
 
       {/* Report Broken Link Modal */}
       <ReportRequestModal
@@ -435,11 +455,11 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   bookmarkBtn: {
     width: 36,
@@ -455,6 +475,22 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(16, 185, 129, 0.15)',
     borderColor: 'rgba(16, 185, 129, 0.4)',
   },
+  downloadServerChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e50914',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    gap: 4,
+    marginLeft: 'auto',
+  },
+  downloadServerChipText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+
   serverRow: {
     flexDirection: 'row',
     alignItems: 'center',
