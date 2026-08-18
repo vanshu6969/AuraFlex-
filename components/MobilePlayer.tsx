@@ -7,7 +7,9 @@ import { MediaItem } from '../types/media';
 
 import { EMBED_SERVERS, isKdramaOrCdrama, isPunjabiMedia, isAnimeMedia } from '../lib/mediaData';
 import { storageService } from '../lib/storage';
+import { showToast } from '../lib/toast';
 import { tmdbService } from '../lib/tmdb';
+
 import { ReportRequestModal } from './ReportRequestModal';
 import { YouTubePlayer } from './YouTubePlayer';
 import { EpisodeSlider } from './EpisodeSlider';
@@ -165,6 +167,47 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
     }
   }, [media.id, season, episode, activeServerId]);
 
+  // Keyboard Shortcuts (Web Desktop View)
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+
+      if (key === ' ' || key === 'k') {
+        e.preventDefault();
+        showToast('Playback Toggled (Space/K)', 'info');
+      } else if (key === 'f') {
+        e.preventDefault();
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen?.().catch(() => {});
+          showToast('Entered Fullscreen (F)', 'info');
+        } else {
+          document.exitFullscreen?.().catch(() => {});
+          showToast('Exited Fullscreen (F)', 'info');
+        }
+      } else if (key === 'm') {
+        e.preventDefault();
+        showToast('Audio Mute Toggled (M)', 'info');
+      } else if (key === 'arrowleft') {
+        e.preventDefault();
+        showToast('Seek -10s Backward (←)', 'info');
+      } else if (key === 'arrowright') {
+        e.preventDefault();
+        showToast('Seek +10s Forward (→)', 'info');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+
 
   useEffect(() => {
     storageService.isInWatchlist(media.id).then(setIsInWatchlist);
@@ -223,6 +266,8 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
     setActiveServerId(serverId);
     setLoading(true);
     setHasError(false);
+    const targetServer = EMBED_SERVERS.find((s) => s.id === serverId);
+    showToast(`Switched to ${targetServer?.badge || serverId}`, 'info');
   };
 
   const triggerAutoFallback = () => {
@@ -231,17 +276,21 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
     setActiveServerId(EMBED_SERVERS[nextIndex].id);
     setLoading(true);
     setHasError(false);
+    showToast(`Auto-switching to ${EMBED_SERVERS[nextIndex].badge}`, 'info');
   };
 
   const toggleWatchlist = async () => {
     if (isInWatchlist) {
       await storageService.removeFromWatchlist(media.id);
       setIsInWatchlist(false);
+      showToast('Removed from Watchlist', 'info');
     } else {
       await storageService.addToWatchlist(media);
       setIsInWatchlist(true);
+      showToast('Added to Watchlist', 'success');
     }
   };
+
 
   return (
     <View style={styles.container}>

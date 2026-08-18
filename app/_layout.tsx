@@ -9,6 +9,8 @@ import * as Updates from 'expo-updates';
 import { AuthModal } from '../components/AuthModal';
 import { DisclaimerModal } from '../components/DisclaimerModal';
 import { CommandSearch } from '../components/CommandSearch';
+import { ToastNotification } from '../components/ToastNotification';
+
 
 import { useAntiNewTab } from '../lib/antiNewTab';
 import { ThemeProvider, useTheme } from '../lib/themeContext';
@@ -21,6 +23,12 @@ function useAutoUpdate() {
   useEffect(() => {
     initSystemShield();
 
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+
     async function onFetchUpdateAsync() {
       if (__DEV__) return;
       try {
@@ -29,13 +37,12 @@ function useAutoUpdate() {
           await Updates.fetchUpdateAsync();
           await Updates.reloadAsync();
         }
-      } catch (error) {
-        console.log(`Auto update check error: ${error}`);
-      }
+      } catch (error) {}
     }
     onFetchUpdateAsync();
   }, []);
 }
+
 
 function RootContent() {
   useAntiNewTab();
@@ -98,10 +105,11 @@ function RootContent() {
       <CommandSearch isOpen={commandSearchOpen} onClose={() => setCommandSearchOpen(false)} />
       <AuthModal visible={authVisible} onClose={() => setAuthVisible(false)} />
       <DisclaimerModal />
-
+      <ToastNotification />
     </View>
   );
 }
+
 
 export default function RootLayout() {
   return (

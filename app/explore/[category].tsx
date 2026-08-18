@@ -14,7 +14,9 @@ import {
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MediaSection } from '../../components/MediaSection';
+import { SkeletonGrid } from '../../components/SkeletonGrid';
 import { tmdbService } from '../../lib/tmdb';
+
 import { MediaItem } from '../../types/media';
 
 type MediaTypeFilter = 'all' | 'movie' | 'tv';
@@ -229,11 +231,9 @@ export default function CategoryExplorePage() {
       {/* Media Grid */}
 
       {loading ? (
-        <View style={styles.loadingBox}>
-          <ActivityIndicator size="large" color="#e50914" />
-          <Text style={styles.loadingText}>Loading {categoryName} titles...</Text>
-        </View>
+        <SkeletonGrid count={12} />
       ) : filteredItems.length > 0 ? (
+
         <View>
           <MediaSection
             title={`${categoryName} (${filteredItems.length})`}

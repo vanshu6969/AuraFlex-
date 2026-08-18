@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 interface StructuredDataProps {
   type?: 'website' | 'movie' | 'tv';
@@ -15,6 +15,37 @@ export const StructuredData: React.FC<StructuredDataProps> = ({
   image = 'https://auraflexmovies.vercel.app/assets/icon.png',
   url = 'https://auraflexmovies.vercel.app',
 }) => {
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    const setMeta = (property: string, content: string, isName = false) => {
+      const selector = isName ? `meta[name="${property}"]` : `meta[property="${property}"]`;
+      let element = document.querySelector(selector);
+      if (!element) {
+        element = document.createElement('meta');
+        if (isName) {
+          element.setAttribute('name', property);
+        } else {
+          element.setAttribute('property', property);
+        }
+        document.head.appendChild(element);
+      }
+      element.setAttribute('content', content);
+    };
+
+    document.title = title;
+    setMeta('description', description, true);
+    setMeta('og:title', title);
+    setMeta('og:description', description);
+    setMeta('og:image', image);
+    setMeta('og:url', url);
+    setMeta('og:type', type === 'movie' || type === 'tv' ? 'video.movie' : 'website');
+    setMeta('twitter:card', 'summary_large_image', true);
+    setMeta('twitter:title', title, true);
+    setMeta('twitter:description', description, true);
+    setMeta('twitter:image', image, true);
+  }, [title, description, image, url, type]);
+
   const websiteSchema = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',

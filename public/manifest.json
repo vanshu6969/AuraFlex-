@@ -1,0 +1,17 @@
+{
+  "short_name": "AuraFlex",
+  "name": "AuraFlex Cinema - Movies & Series",
+  "icons": [
+    {
+      "src": "/assets/icon.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0b0c0f",
+  "theme_color": "#e50914",
+  "display": "standalone",
+  "orientation": "any"
+}
