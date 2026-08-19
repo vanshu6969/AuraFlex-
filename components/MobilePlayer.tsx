@@ -3,11 +3,14 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Platform, 
 
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
-import { MediaItem } from '../types/media';
+import { MediaItem, EmbedServer } from '../types/media';
 
 import { EMBED_SERVERS, isKdramaOrCdrama, isPunjabiMedia, isAnimeMedia } from '../lib/mediaData';
+
 import { storageService } from '../lib/storage';
+import { streamOverrideService, StreamOverrideRecord } from '../lib/streamOverrides';
 import { showToast } from '../lib/toast';
+
 import { tmdbService } from '../lib/tmdb';
 import { ServerPillButton } from './ui/AuraButtons';
 
@@ -59,7 +62,27 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
   const isAnime = isAnimeMedia(media);
   const isSeries = media.media_type === 'tv' || (media.media_type === 'anime' && (media.episodes_count || 0) > 1);
 
-  const availableServers = isPunjabi
+  const [customOverride, setCustomOverride] = useState<StreamOverrideRecord | null>(null);
+
+  useEffect(() => {
+    streamOverrideService.getOverride(media.id).then((override) => {
+      if (override && override.custom_stream_url) {
+        setCustomOverride(override);
+        setActiveServerId('custom_vip');
+      }
+    });
+  }, [media.id]);
+
+  const customServerObj: EmbedServer | null = customOverride
+    ? {
+        id: 'custom_vip',
+        name: 'VIP Stream',
+        badge: 'Direct VIP',
+        getUrl: () => customOverride.custom_stream_url,
+      }
+    : null;
+
+  const baseServers = isPunjabi
     ? EMBED_SERVERS.filter((s) => s.id === 'videasy' || s.id === 'embedmaster' || s.id === 'flmu' || s.id === 'youtube')
     : isKdrama
     ? EMBED_SERVERS.filter((s) => s.id === 'videasy' || s.id === 'nontongo' || s.id === 'youtube')
@@ -67,7 +90,10 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
     ? EMBED_SERVERS.filter((s) => s.id === 'anime' || s.id === 'videasy')
     : EMBED_SERVERS.filter((s) => s.id !== 'nontongo' && s.id !== 'anime');
 
+  const availableServers = customServerObj ? [customServerObj, ...baseServers] : baseServers;
+
   const [activeServerId, setActiveServerId] = useState(() => 'videasy');
+
 
 
   const [season, setSeason] = useState(initialSeason);
