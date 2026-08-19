@@ -10,6 +10,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -22,6 +23,9 @@ interface CommandSearchProps {
 }
 
 export const CommandSearch: React.FC<CommandSearchProps> = ({ isOpen, onClose }) => {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 640;
+
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -38,8 +42,7 @@ export const CommandSearch: React.FC<CommandSearchProps> = ({ isOpen, onClose })
         if (isOpen) {
           onClose();
         } else {
-          // Open spotlight search
-          onClose(); // Reset state
+          onClose();
         }
       } else if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
         e.preventDefault();
@@ -90,30 +93,49 @@ export const CommandSearch: React.FC<CommandSearchProps> = ({ isOpen, onClose })
   if (!isOpen) return null;
 
   return (
-    <Modal visible={isOpen} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity activeOpacity={1} onPress={onClose} style={styles.backdrop}>
-        <TouchableOpacity activeOpacity={1} style={styles.dialogCard}>
+    <Modal visible={isOpen} transparent animationType={isMobile ? 'slide' : 'fade'} onRequestClose={onClose}>
+      <TouchableOpacity
+        activeOpacity={1}
+        onPress={isMobile ? undefined : onClose}
+        style={[styles.backdrop, isMobile && styles.mobileBackdrop]}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          style={[styles.dialogCard, isMobile && styles.mobileDialogCard]}
+        >
           {/* Search Input Bar */}
-          <View style={styles.inputBar}>
+          <View style={[styles.inputBar, isMobile && styles.mobileInputBar]}>
             <Ionicons name="search" size={20} color="#e50914" />
             <TextInput
               ref={inputRef}
               value={query}
               onChangeText={setQuery}
-              placeholder="Search movies, TV shows, anime, genres..."
+              placeholder="Search movies, series, anime..."
               placeholderTextColor="#9ca3af"
               style={styles.textInput}
               autoCapitalize="none"
               returnKeyType="search"
             />
-            {query.length > 0 ? (
-              <TouchableOpacity onPress={() => setQuery('')} style={styles.clearBtn}>
+
+            {/* Quick Clear ✕ Button */}
+            {query.length > 0 && (
+              <TouchableOpacity onPress={() => setQuery('')} style={styles.clearBtn} activeOpacity={0.7}>
                 <Ionicons name="close-circle" size={18} color="#9ca3af" />
               </TouchableOpacity>
-            ) : (
+            )}
+
+            {/* Desktop Shortcut Badge (hidden on mobile) */}
+            {!isMobile && query.length === 0 && (
               <View style={styles.kbdBadge}>
                 <Text style={styles.kbdText}>Ctrl + K</Text>
               </View>
+            )}
+
+            {/* Mobile Cancel Button */}
+            {isMobile && (
+              <TouchableOpacity onPress={onClose} style={styles.mobileCancelBtn} activeOpacity={0.7}>
+                <Text style={styles.mobileCancelText}>Cancel</Text>
+              </TouchableOpacity>
             )}
           </View>
 
@@ -124,10 +146,14 @@ export const CommandSearch: React.FC<CommandSearchProps> = ({ isOpen, onClose })
               <Text style={styles.loadingText}>Searching TMDB library...</Text>
             </View>
           ) : results.length > 0 ? (
-            <ScrollView style={styles.resultsScroll} contentContainerStyle={styles.resultsPadding} keyboardShouldPersistTaps="handled">
+            <ScrollView
+              style={[styles.resultsScroll, isMobile && styles.mobileResultsScroll]}
+              contentContainerStyle={styles.resultsPadding}
+              keyboardShouldPersistTaps="handled"
+            >
               <Text style={styles.sectionTitle}>SEARCH RESULTS ({results.length})</Text>
 
-              {results.slice(0, 10).map((item, idx) => {
+              {results.slice(0, 12).map((item, idx) => {
                 const isSelected = idx === selectedIndex;
                 const releaseYear = (item.release_date || item.first_air_date || '').substring(0, 4);
 
@@ -178,10 +204,12 @@ export const CommandSearch: React.FC<CommandSearchProps> = ({ isOpen, onClose })
             </View>
           )}
 
-          {/* Dialog Footer */}
-          <View style={styles.dialogFooter}>
-            <Text style={styles.footerHint}>Press Esc or tap outside to close</Text>
-          </View>
+          {/* Desktop Only Dialog Footer */}
+          {!isMobile && (
+            <View style={styles.dialogFooter}>
+              <Text style={styles.footerHint}>Press Esc or tap outside to close</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>
@@ -203,6 +231,11 @@ const styles = StyleSheet.create({
         } as any)
       : {}),
   },
+  mobileBackdrop: {
+    paddingTop: 0,
+    paddingHorizontal: 0,
+    backgroundColor: '#0b0c0f',
+  },
   dialogCard: {
     width: '100%',
     maxWidth: 580,
@@ -216,6 +249,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.9,
     shadowRadius: 30,
   },
+  mobileDialogCard: {
+    width: '100%',
+    height: '100%',
+    maxWidth: '100%',
+    borderRadius: 0,
+    borderWidth: 0,
+    backgroundColor: '#0b0c0f',
+  },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -224,6 +265,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.08)',
     gap: 12,
+  },
+  mobileInputBar: {
+    paddingTop: Platform.OS === 'ios' ? 48 : 18,
+    paddingBottom: 14,
+    backgroundColor: '#12141a',
   },
   textInput: {
     flex: 1,
@@ -250,6 +296,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
+  mobileCancelBtn: {
+    paddingLeft: 6,
+    paddingRight: 2,
+  },
+  mobileCancelText: {
+    color: '#e50914',
+    fontSize: 14,
+    fontWeight: '700',
+  },
   loadingBox: {
     paddingVertical: 36,
     alignItems: 'center',
@@ -261,6 +316,10 @@ const styles = StyleSheet.create({
   },
   resultsScroll: {
     maxHeight: 380,
+  },
+  mobileResultsScroll: {
+    flex: 1,
+    maxHeight: '100%' as any,
   },
   resultsPadding: {
     padding: 12,
