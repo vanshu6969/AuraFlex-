@@ -112,6 +112,14 @@ export default function AdminStreamOverridesScreen() {
       return;
     }
 
+    let formattedStreamtapeUrl = streamtapeUrl.trim();
+    if (formattedStreamtapeUrl) {
+      if (!/^https?:\/\//i.test(formattedStreamtapeUrl)) {
+        formattedStreamtapeUrl = `https://${formattedStreamtapeUrl}`;
+      }
+      formattedStreamtapeUrl = formattedStreamtapeUrl.replace(/\/v\//i, '/e/');
+    }
+
     setSaving(true);
     const res = await streamOverrideService.upsertOverride({
       tmdb_id: tmdbId.trim(),
@@ -119,7 +127,7 @@ export default function AdminStreamOverridesScreen() {
       media_type: mediaType,
       custom_stream_url: customUrl.trim() || null,
       backup_stream_url: backupUrl.trim() || null,
-      streamtape_url: streamtapeUrl.trim() || null,
+      streamtape_url: formattedStreamtapeUrl || null,
       download_url: downloadUrl.trim() || null,
     });
     setSaving(false);

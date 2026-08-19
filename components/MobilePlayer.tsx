@@ -82,7 +82,13 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
         id: 'custom_vip',
         name: 'VIP Stream',
         badge: 'Direct VIP',
-        getUrl: () => customOverride.custom_stream_url || '',
+        getUrl: () => {
+          let url = (customOverride.custom_stream_url || '').trim();
+          if (url && !/^https?:\/\//i.test(url)) {
+            url = `https://${url}`;
+          }
+          return url;
+        },
       }
     : null;
 
@@ -91,7 +97,13 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
         id: 'custom_streamtape',
         name: 'StreamTape',
         badge: 'StreamTape',
-        getUrl: () => customOverride.streamtape_url!,
+        getUrl: () => {
+          let url = (customOverride.streamtape_url || '').trim();
+          if (url && !/^https?:\/\//i.test(url)) {
+            url = `https://${url}`;
+          }
+          return url.replace(/\/v\//i, '/e/');
+        },
       }
     : null;
 
@@ -138,7 +150,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
     }
   }, [media.title]);
 
-  const currentServer = EMBED_SERVERS.find((s) => s.id === activeServerId) || availableServers[0] || EMBED_SERVERS[0];
+  const currentServer = availableServers.find((s) => s.id === activeServerId) || availableServers[0] || EMBED_SERVERS[0];
   const embedUrl = activeServerId === 'youtube'
     ? 'about:blank'
     : currentServer.getUrl(media.media_type, media.id, season, episode, anilistId);
@@ -309,17 +321,18 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
     setActiveServerId(serverId);
     setLoading(true);
     setHasError(false);
-    const targetServer = EMBED_SERVERS.find((s) => s.id === serverId);
-    showToast(`Switched to ${targetServer?.badge || serverId}`, 'info');
+    const targetServer = availableServers.find((s) => s.id === serverId);
+    showToast(`Switched to ${targetServer?.badge || targetServer?.name || serverId}`, 'info');
   };
 
   const triggerAutoFallback = () => {
-    const currentIndex = EMBED_SERVERS.findIndex((s) => s.id === activeServerId);
-    const nextIndex = (currentIndex + 1) % EMBED_SERVERS.length;
-    setActiveServerId(EMBED_SERVERS[nextIndex].id);
+    const currentIndex = availableServers.findIndex((s) => s.id === activeServerId);
+    const nextIndex = (currentIndex + 1) % (availableServers.length || 1);
+    const nextServer = availableServers[nextIndex] || EMBED_SERVERS[0];
+    setActiveServerId(nextServer.id);
     setLoading(true);
     setHasError(false);
-    showToast(`Auto-switching to ${EMBED_SERVERS[nextIndex].badge}`, 'info');
+    showToast(`Auto-switching to ${nextServer.badge || nextServer.name}`, 'info');
   };
 
   const toggleWatchlist = async () => {
@@ -480,7 +493,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
 
                 {Platform.OS === 'web' ? (
                   <View style={{ flex: 1, width: '100%', height: '100%', position: 'relative' }}>
-                    {showAdShield && (
+                    {showAdShield && activeServerId !== 'custom_streamtape' && activeServerId !== 'custom_vip' && (
                       <TouchableOpacity
                         activeOpacity={1}
                         onPress={handleShieldClick}
@@ -505,7 +518,8 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
                         backgroundColor: '#000',
                       }}
                       allowFullScreen={true}
-                      allow="autoplay; fullscreen *; picture-in-picture; encrypted-media"
+                      allow="autoplay; fullscreen; picture-in-picture; encrypted-media; accelerometer; gyroscope"
+                      referrerPolicy="no-referrer-when-downgrade"
                     />
                   </View>
                 ) : (
