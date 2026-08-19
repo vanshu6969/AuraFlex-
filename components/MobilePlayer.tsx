@@ -9,6 +9,8 @@ import { EMBED_SERVERS, isKdramaOrCdrama, isPunjabiMedia, isAnimeMedia } from '.
 import { storageService } from '../lib/storage';
 import { showToast } from '../lib/toast';
 import { tmdbService } from '../lib/tmdb';
+import { ServerPillButton } from './ui/AuraButtons';
+
 
 import { ReportRequestModal } from './ReportRequestModal';
 import { YouTubePlayer } from './YouTubePlayer';
@@ -326,22 +328,21 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
 
       {/* Multi-Server Selector Chips */}
       <View style={styles.serverRow}>
-        <Text style={styles.serverLabel}>SERVERS:</Text>
         {availableServers.map((server) => {
           const isActive = server.id === activeServerId;
           return (
-            <TouchableOpacity
+            <ServerPillButton
               key={server.id}
-              onPress={() => handleServerSwitch(server.id)}
-              style={[styles.serverChip, isActive && styles.serverChipActive]}
-            >
-              <Text style={[styles.serverChipText, isActive && styles.serverChipTextActive]}>
-                {server.name}
-              </Text>
-            </TouchableOpacity>
+              serverId={server.id}
+              name={server.name}
+              badge={server.badge?.includes('HD') ? 'HD' : 'FAST'}
+              isActive={isActive}
+              onSelect={() => handleServerSwitch(server.id)}
+            />
           );
         })}
       </View>
+
 
 
 

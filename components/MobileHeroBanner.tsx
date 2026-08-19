@@ -5,6 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { MediaItem } from '../types/media';
 import { storageService } from '../lib/storage';
 import { showToast } from '../lib/toast';
+import { PrimaryPlayButton, GlassWatchlistButton } from './ui/AuraButtons';
+
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -131,30 +133,20 @@ export const MobileHeroBanner: React.FC<MobileHeroBannerProps> = ({ items, item 
 
         {/* Action Buttons */}
         <View style={styles.actionRow}>
-          <TouchableOpacity
-            activeOpacity={0.85}
+          <PrimaryPlayButton
+            label="Watch Now"
+            size="md"
             onPress={() => router.push(`/watch/${currentItem.media_type || 'movie'}/${currentItem.id}`)}
-            style={styles.watchButton}
-          >
-            <Ionicons name="play" size={18} color="#ffffff" />
-            <Text style={styles.watchText}>Watch Now</Text>
-          </TouchableOpacity>
+          />
 
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={toggleWatchlist}
-            style={[styles.watchlistButton, isInWatchlist && styles.watchlistActive]}
-          >
-            <Ionicons
-              name={isInWatchlist ? 'checkmark' : 'add'}
-              size={18}
-              color={isInWatchlist ? '#10b981' : '#ffffff'}
-            />
-            <Text style={[styles.watchlistText, isInWatchlist && styles.watchlistActiveText]}>
-              {isInWatchlist ? 'Saved' : '+ Watchlist'}
-            </Text>
-          </TouchableOpacity>
+          <GlassWatchlistButton
+            isSaved={isInWatchlist}
+            onToggle={toggleWatchlist}
+            label="+ Watchlist"
+            savedLabel="Saved"
+          />
         </View>
+
 
         {/* Sleek Pill Indicator Bar (Max 5 items) */}
         {visibleItems.length > 1 && (
