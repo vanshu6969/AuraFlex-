@@ -317,6 +317,7 @@ export const tmdbService = {
           variables: { search: title },
         }),
       });
+      if (!res.ok) return null;
       const data = await res.json();
       return data?.data?.Media?.id || null;
     } catch {

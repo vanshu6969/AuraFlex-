@@ -190,12 +190,12 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
   const [anilistId, setAnilistId] = useState<number | null>(null);
 
   useEffect(() => {
-    if (media.title) {
+    if (media.title && media.media_type === 'anime') {
       tmdbService.getAniListId(media.title).then((id) => {
         if (id) setAnilistId(id);
       });
     }
-  }, [media.title]);
+  }, [media.title, media.media_type]);
 
   const currentServer = availableServers.find((s) => s.id === activeServerId) || availableServers[0] || EMBED_SERVERS[0];
   const embedUrl = activeServerId === 'youtube'

@@ -47,7 +47,7 @@ export const getAnimeDetails = async (id: string | number): Promise<AniListMedia
       body: JSON.stringify({ query, variables: { id: numericId } }),
     });
 
-    if (!res.ok) throw new Error('Failed to fetch AniList details');
+    if (!res.ok) return null;
     const data = await res.json();
     return data?.data?.Media || null;
   } catch (err) {

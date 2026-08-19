@@ -8,6 +8,7 @@ import { MobileMediaGrid } from '../../../components/MobileMediaGrid';
 import { MOCK_MEDIA_ITEMS } from '../../../lib/mediaData';
 import { tmdbService } from '../../../lib/tmdb';
 import { getAnimeDetails } from '../../../lib/anilist';
+import { streamOverrideService } from '../../../lib/streamOverrides';
 import { StructuredData } from '../../../components/StructuredData';
 import { MediaItem } from '../../../types/media';
 
@@ -31,7 +32,7 @@ export default function WatchScreen() {
         media_type: mediaType,
         vote_average: 8.5,
         genres: ['Action', 'Drama', 'Sci-Fi'],
-        quality: '4K Ultra HD',
+        quality: '1080p Full HD',
         episodes_count: 12,
       }
     );
@@ -41,22 +42,37 @@ export default function WatchScreen() {
 
   useEffect(() => {
     const fetchMetadata = async () => {
+      // 1. Immediately check Supabase stream override database (Independent of AniList / TMDB)
+      try {
+        const override = await streamOverrideService.getOverride(mediaId);
+        if (override) {
+          setActiveMedia((prev) => ({
+            ...prev,
+            id: String(mediaId),
+            title: override.title || prev.title,
+            media_type: override.media_type || mediaType,
+          }));
+        }
+      } catch (e) {}
+
+      // 2. Fetch external details conditionally without blocking player stream
       try {
         if (mediaType === 'anime') {
           const animeData = await getAnimeDetails(mediaId);
           if (animeData) {
-            setActiveMedia({
+            setActiveMedia((prev) => ({
+              ...prev,
               id: animeData.id,
-              title: animeData.title.english || animeData.title.romaji || 'Featured Anime',
-              overview: animeData.description ? animeData.description.replace(/<[^>]*>?/gm, '') : 'Stream high-definition anime.',
-              poster_path: animeData.coverImage.extraLarge || animeData.coverImage.large || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80',
-              backdrop_path: animeData.bannerImage || animeData.coverImage.extraLarge || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1600&auto=format&fit=crop&q=80',
+              title: animeData.title.english || animeData.title.romaji || prev.title || 'Featured Anime',
+              overview: animeData.description ? animeData.description.replace(/<[^>]*>?/gm, '') : prev.overview,
+              poster_path: animeData.coverImage.extraLarge || animeData.coverImage.large || prev.poster_path,
+              backdrop_path: animeData.bannerImage || animeData.coverImage.extraLarge || prev.backdrop_path,
               media_type: 'anime',
-              vote_average: animeData.averageScore ? animeData.averageScore / 10 : 8.5,
-              genres: animeData.genres?.length ? animeData.genres : ['Anime', 'Action'],
+              vote_average: animeData.averageScore ? animeData.averageScore / 10 : prev.vote_average,
+              genres: animeData.genres?.length ? animeData.genres : prev.genres,
               quality: '1080p Full HD',
-              episodes_count: animeData.episodes || 12,
-            });
+              episodes_count: animeData.episodes || prev.episodes_count,
+            }));
           }
         } else {
           const tmdbItem = await tmdbService.getMediaDetails(mediaId, mediaType);
