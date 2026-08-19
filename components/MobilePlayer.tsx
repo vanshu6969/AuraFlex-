@@ -161,12 +161,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
         badge: 'StreamTape',
         getUrl: () => {
           let url = (customOverride.streamtape_url || '').trim();
-          if (url && !/^https?:\/\//i.test(url)) {
-            url = `https://${url}`;
-          }
-          url = url.replace(/\/v\//i, '/e/');
-          // Replace ISP-blocked streamtape.com domain with fast unblocked streamtape.to mirror
-          return url.replace(/streamtape\.com/i, 'streamtape.to');
+          return `/api/streamtape?url=${encodeURIComponent(url)}`;
         },
       }
     : null;
@@ -501,6 +496,25 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
             <Ionicons name="download-outline" size={16} color="#ffffff" />
             <Text style={styles.emeraldDownloadBtnText}>
               Download {media.media_type === 'tv' ? 'Episode' : 'Movie'}
+            </Text>
+          </TouchableOpacity>
+        ) : customOverride?.streamtape_url ? (
+          <TouchableOpacity
+            onPress={() => {
+              const proxyDownloadUrl = `/api/streamtape?url=${encodeURIComponent(customOverride.streamtape_url!)}&download=1`;
+              showToast('Starting high-speed StreamTape download...', 'success');
+              if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                window.location.href = proxyDownloadUrl;
+              } else {
+                Linking.openURL(proxyDownloadUrl).catch(() => {});
+              }
+            }}
+            style={styles.emeraldDownloadBtn}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="download-outline" size={16} color="#ffffff" />
+            <Text style={styles.emeraldDownloadBtnText}>
+              Download 1080p
             </Text>
           </TouchableOpacity>
         ) : null}
