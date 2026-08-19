@@ -118,6 +118,7 @@ export default function AdminStreamOverridesScreen() {
         formattedStreamtapeUrl = `https://${formattedStreamtapeUrl}`;
       }
       formattedStreamtapeUrl = formattedStreamtapeUrl.replace(/\/v\//i, '/e/');
+      formattedStreamtapeUrl = formattedStreamtapeUrl.replace(/streamtape\.com/i, 'streamtape.to');
     }
 
     setSaving(true);

@@ -102,7 +102,9 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
           if (url && !/^https?:\/\//i.test(url)) {
             url = `https://${url}`;
           }
-          return url.replace(/\/v\//i, '/e/');
+          url = url.replace(/\/v\//i, '/e/');
+          // Replace ISP-blocked streamtape.com domain with fast unblocked streamtape.to mirror
+          return url.replace(/streamtape\.com/i, 'streamtape.to');
         },
       }
     : null;
