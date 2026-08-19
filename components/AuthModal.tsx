@@ -310,9 +310,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
                       placeholder="6-Digit OTP Code"
                       placeholderTextColor="#6b7280"
                       value={otpToken}
-                      onChangeText={setOtpToken}
+                      onChangeText={(val) => setOtpToken(val.replace(/\D/g, ''))}
                       keyboardType="numeric"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
                       maxLength={6}
+                      {...(Platform.OS === 'web' ? ({ pattern: '[0-9]*' } as any) : {})}
                     />
                   </View>
 
@@ -326,6 +329,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
                       value={newPassword}
                       onChangeText={setNewPassword}
                       secureTextEntry={!showPassword}
+                      autoComplete="new-password"
                     />
                     <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                       <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color="#9ca3af" />
@@ -342,8 +346,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
                       value={confirmPassword}
                       onChangeText={setConfirmPassword}
                       secureTextEntry={!showPassword}
+                      autoComplete="new-password"
                     />
                   </View>
+
                 </>
               )}
 
