@@ -34,7 +34,9 @@ export default function AdminStreamOverridesScreen() {
   const [mediaType, setMediaType] = useState<'movie' | 'tv' | 'anime'>('movie');
   const [customUrl, setCustomUrl] = useState('');
   const [backupUrl, setBackupUrl] = useState('');
-  
+  const [streamtapeUrl, setStreamtapeUrl] = useState('');
+  const [downloadUrl, setDownloadUrl] = useState('');
+
   const [lookupLoading, setLookupLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [overrides, setOverrides] = useState<StreamOverrideRecord[]>([]);
@@ -111,6 +113,8 @@ export default function AdminStreamOverridesScreen() {
       media_type: mediaType,
       custom_stream_url: customUrl.trim(),
       backup_stream_url: backupUrl.trim() || null,
+      streamtape_url: streamtapeUrl.trim() || null,
+      download_url: downloadUrl.trim() || null,
     });
     setSaving(false);
 
@@ -120,6 +124,8 @@ export default function AdminStreamOverridesScreen() {
       setTitle('');
       setCustomUrl('');
       setBackupUrl('');
+      setStreamtapeUrl('');
+      setDownloadUrl('');
       fetchOverrides();
     } else {
       showToast('Failed to save stream override', 'error');
@@ -133,6 +139,8 @@ export default function AdminStreamOverridesScreen() {
     setMediaType(record.media_type);
     setCustomUrl(record.custom_stream_url);
     setBackupUrl(record.backup_stream_url || '');
+    setStreamtapeUrl(record.streamtape_url || '');
+    setDownloadUrl(record.download_url || '');
     showToast(`Loaded ${record.title} for editing`, 'info');
   };
 
@@ -288,6 +296,32 @@ export default function AdminStreamOverridesScreen() {
             />
           </View>
 
+          {/* StreamTape Embed URL */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>StreamTape Embed URL (Server #2)</Text>
+            <TextInput
+              value={streamtapeUrl}
+              onChangeText={setStreamtapeUrl}
+              placeholder="https://streamtape.com/e/..."
+              placeholderTextColor="#6b7280"
+              style={styles.textInput}
+              autoCapitalize="none"
+            />
+          </View>
+
+          {/* Direct Download URL */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Direct Download URL</Text>
+            <TextInput
+              value={downloadUrl}
+              onChangeText={setDownloadUrl}
+              placeholder="https://download.provider.com/file.mp4"
+              placeholderTextColor="#6b7280"
+              style={styles.textInput}
+              autoCapitalize="none"
+            />
+          </View>
+
           {/* Backup Stream URL */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Backup Stream URL (Optional)</Text>
@@ -354,10 +388,28 @@ export default function AdminStreamOverridesScreen() {
                     </View>
                   </View>
 
-                  <Text style={styles.urlLabel}>CUSTOM STREAM:</Text>
+                  <Text style={styles.urlLabel}>PRIMARY STREAM:</Text>
                   <Text style={styles.urlSnippet} numberOfLines={1}>
                     {item.custom_stream_url}
                   </Text>
+
+                  {item.streamtape_url ? (
+                    <>
+                      <Text style={styles.urlLabel}>STREAMTAPE (SERVER #2):</Text>
+                      <Text style={styles.urlSnippet} numberOfLines={1}>
+                        {item.streamtape_url}
+                      </Text>
+                    </>
+                  ) : null}
+
+                  {item.download_url ? (
+                    <>
+                      <Text style={styles.urlLabel}>DIRECT DOWNLOAD:</Text>
+                      <Text style={styles.urlSnippet} numberOfLines={1}>
+                        {item.download_url}
+                      </Text>
+                    </>
+                  ) : null}
                 </View>
               ))}
             </View>
@@ -448,64 +500,65 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     letterSpacing: 2,
-    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
   unlockBtn: {
     backgroundColor: '#e50914',
-    paddingVertical: 13,
     borderRadius: 12,
+    paddingVertical: 12,
     alignItems: 'center',
     marginTop: 4,
   },
   unlockBtnText: {
     color: '#ffffff',
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   cancelLockBtn: {
     paddingVertical: 8,
   },
   cancelLockText: {
-    color: '#6b7280',
+    color: '#9ca3af',
     fontSize: 13,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 8,
   },
   backBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: '#18181f',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   headerTitle: {
+    flex: 1,
     color: '#ffffff',
     fontSize: 18,
     fontWeight: '800',
-    flex: 1,
   },
   adminBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.5)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   adminBadgeText: {
-    color: '#10b981',
+    color: '#34d399',
     fontSize: 10,
-    fontWeight: '900',
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   formCard: {
     backgroundColor: '#12141a',
     borderRadius: 20,
-    padding: 18,
+    padding: 20,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     gap: 16,
@@ -518,39 +571,36 @@ const styles = StyleSheet.create({
   formSubtitle: {
     color: '#9ca3af',
     fontSize: 12,
-    lineHeight: 17,
+    marginTop: -8,
   },
   inputGroup: {
     gap: 6,
   },
   inputLabel: {
-    color: '#e5e7eb',
+    color: '#d1d5db',
     fontSize: 12,
     fontWeight: '700',
   },
-  textInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    color: '#ffffff',
-    fontSize: 13,
-    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
-  },
   rowInput: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
   },
-  lookupBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 14,
+  textInput: {
+    backgroundColor: '#0b0c0f',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.18)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: '#ffffff',
+    fontSize: 14,
+  },
+  lookupBtn: {
+    backgroundColor: '#3b82f6',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
   },
   lookupBtnText: {
@@ -560,19 +610,19 @@ const styles = StyleSheet.create({
   },
   typeSelectorRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
   },
   typePill: {
     flex: 1,
-    alignItems: 'center',
+    backgroundColor: '#0b0c0f',
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
   },
   typePillActive: {
-    backgroundColor: 'rgba(229, 9, 20, 0.2)',
+    backgroundColor: '#e50914',
     borderColor: '#e50914',
   },
   typePillText: {
@@ -582,73 +632,71 @@ const styles = StyleSheet.create({
   },
   typePillTextActive: {
     color: '#ffffff',
-    fontWeight: '900',
   },
   saveBtn: {
+    backgroundColor: '#e50914',
+    borderRadius: 14,
+    paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#e50914',
-    paddingVertical: 14,
-    borderRadius: 14,
     gap: 8,
     marginTop: 6,
   },
   saveBtnText: {
     color: '#ffffff',
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '800',
   },
   listCard: {
     backgroundColor: '#12141a',
     borderRadius: 20,
-    padding: 18,
+    padding: 20,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
-    gap: 14,
+    gap: 16,
   },
   listHeaderRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
   refreshBtn: {
     padding: 6,
   },
   loadingBox: {
-    paddingVertical: 30,
+    padding: 24,
     alignItems: 'center',
     gap: 8,
   },
   loadingText: {
     color: '#9ca3af',
-    fontSize: 13,
+    fontSize: 12,
   },
   overrideList: {
-    gap: 10,
+    gap: 12,
   },
   overrideItemCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: '#0b0c0f',
+    borderRadius: 14,
+    padding: 14,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
+    gap: 6,
   },
   itemHeaderRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
   },
   itemTitle: {
     color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: 15,
+    fontWeight: '700',
   },
   itemMeta: {
-    color: '#9ca3af',
+    color: '#6b7280',
     fontSize: 11,
-    marginTop: 2,
   },
   actionRowBtn: {
     flexDirection: 'row',
@@ -665,24 +713,23 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   urlLabel: {
-    color: '#e50914',
+    color: '#9ca3af',
     fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    marginTop: 4,
   },
   urlSnippet: {
-    color: '#d1d5db',
-    fontSize: 11,
+    color: '#34d399',
+    fontSize: 12,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    marginTop: 2,
   },
   emptyBox: {
-    paddingVertical: 30,
+    padding: 30,
     alignItems: 'center',
     gap: 8,
   },
   emptyText: {
-    color: '#9ca3af',
+    color: '#6b7280',
     fontSize: 13,
   },
 });

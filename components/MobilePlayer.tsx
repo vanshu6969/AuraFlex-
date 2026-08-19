@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Platform, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Platform, Alert, Linking } from 'react-native';
 
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
@@ -66,19 +66,32 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
 
   useEffect(() => {
     streamOverrideService.getOverride(media.id).then((override) => {
-      if (override && override.custom_stream_url) {
+      if (override) {
         setCustomOverride(override);
-        setActiveServerId('custom_vip');
+        if (override.custom_stream_url) {
+          setActiveServerId('custom_vip');
+        } else if (override.streamtape_url) {
+          setActiveServerId('custom_streamtape');
+        }
       }
     });
   }, [media.id]);
 
-  const customServerObj: EmbedServer | null = customOverride
+  const customServerObj: EmbedServer | null = customOverride?.custom_stream_url
     ? {
         id: 'custom_vip',
         name: 'VIP Stream',
         badge: 'Direct VIP',
         getUrl: () => customOverride.custom_stream_url,
+      }
+    : null;
+
+  const streamtapeServerObj: EmbedServer | null = customOverride?.streamtape_url
+    ? {
+        id: 'custom_streamtape',
+        name: 'StreamTape',
+        badge: 'StreamTape',
+        getUrl: () => customOverride.streamtape_url!,
       }
     : null;
 
@@ -90,9 +103,11 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
     ? EMBED_SERVERS.filter((s) => s.id === 'anime' || s.id === 'videasy')
     : EMBED_SERVERS.filter((s) => s.id !== 'nontongo' && s.id !== 'anime');
 
-  const availableServers = customServerObj ? [customServerObj, ...baseServers] : baseServers;
+  const overrideServers = [customServerObj, streamtapeServerObj].filter(Boolean) as EmbedServer[];
+  const availableServers = overrideServers.length ? [...overrideServers, ...baseServers] : baseServers;
 
   const [activeServerId, setActiveServerId] = useState(() => 'videasy');
+
 
 
 
@@ -369,7 +384,27 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
             />
           );
         })}
+
+        {customOverride?.download_url ? (
+          <TouchableOpacity
+            onPress={() => {
+              if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                window.open(customOverride.download_url!, '_blank');
+              } else {
+                Linking.openURL(customOverride.download_url!);
+              }
+            }}
+            style={styles.emeraldDownloadBtn}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="download-outline" size={16} color="#ffffff" />
+            <Text style={styles.emeraldDownloadBtnText}>
+              Download {media.media_type === 'tv' ? 'Episode' : 'Movie'}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
+
 
 
 
@@ -735,4 +770,26 @@ const styles = StyleSheet.create({
   epTextActive: {
     color: '#ffffff',
   },
+  emeraldDownloadBtn: {
+    backgroundColor: '#059669',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(52, 211, 153, 0.4)',
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  emeraldDownloadBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '800',
+  },
 });
+

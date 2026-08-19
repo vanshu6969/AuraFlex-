@@ -6,6 +6,8 @@ export interface StreamOverrideRecord {
   media_type: 'movie' | 'tv' | 'anime';
   custom_stream_url: string;
   backup_stream_url?: string | null;
+  streamtape_url?: string | null;
+  download_url?: string | null;
   updated_at?: string;
 }
 
@@ -47,7 +49,7 @@ export const streamOverrideService = {
   },
 
   /**
-   * Upsert a custom stream URL override
+   * Upsert a custom stream URL override with StreamTape and Download link options
    */
   async upsertOverride(record: StreamOverrideRecord): Promise<boolean> {
     try {
@@ -57,25 +59,20 @@ export const streamOverrideService = {
         media_type: record.media_type || 'movie',
         custom_stream_url: record.custom_stream_url,
         backup_stream_url: record.backup_stream_url || null,
+        streamtape_url: record.streamtape_url || null,
+        download_url: record.download_url || null,
         updated_at: new Date().toISOString(),
       };
 
-      const { error } = await supabase
-        .from('stream_overrides')
-        .upsert(payload, { onConflict: 'tmdb_id' });
-
-      if (error) {
-        console.error('Failed to upsert stream override:', error);
-        return false;
-      }
-      return true;
+      const { error } = await supabase.from('stream_overrides').upsert(payload);
+      return !error;
     } catch (e) {
       return false;
     }
   },
 
   /**
-   * Delete an override entry
+   * Delete an override by TMDB ID
    */
   async deleteOverride(tmdbId: string | number): Promise<boolean> {
     try {
