@@ -66,18 +66,35 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
           setTimeout(onClose, 1000);
         }
       } else if (mode === 'forgot') {
-        const { error } = await supabase.auth.resetPasswordForEmail(email);
-        if (error) {
-          setErrorMsg(error.message);
+        const redirectUrl =
+          typeof window !== 'undefined'
+            ? `${window.location.origin}/settings/account`
+            : 'https://auraflexmovies.vercel.app/settings/account';
+
+        const resetPromise = supabase.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl });
+        const timeoutPromise = new Promise<{ error: any }>((_, reject) =>
+          setTimeout(
+            () =>
+              reject(
+                new Error('Supabase Auth SMTP connection timed out (HTTP 504). Please verify your SMTP settings in Supabase Dashboard -> Auth -> Email.')
+              ),
+            12000
+          )
+        );
+
+        const res: any = await Promise.race([resetPromise, timeoutPromise]);
+        if (res?.error) {
+          setErrorMsg(res.error.message || 'Password reset failed.');
         } else {
-          setSuccessMsg('Password reset link sent to your email.');
+          setSuccessMsg('Password reset link sent! Check your inbox.');
         }
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Authentication failed.');
+      setErrorMsg(err.message || 'Authentication request timed out. Please try again.');
     } finally {
       setLoading(false);
     }
+
   };
 
   const handleSignOut = async () => {
