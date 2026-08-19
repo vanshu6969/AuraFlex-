@@ -166,22 +166,26 @@ export default function MoreScreen() {
             <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
           </TouchableOpacity>
 
-          <View style={styles.divider} />
+          {user?.email?.toLowerCase() === 'tajinderyt1@gmail.com' && (
+            <>
+              <View style={styles.divider} />
+              <TouchableOpacity
+                onPress={() => router.push('/admin/streams' as any)}
+                activeOpacity={0.75}
+                style={styles.groupRowItem}
+              >
+                <View style={styles.rowIconPod}>
+                  <Ionicons name="hardware-chip-outline" size={18} color="#e50914" />
+                </View>
+                <View style={styles.rowTextGroup}>
+                  <Text style={styles.rowTitle}>Stream Link Overrides</Text>
+                  <Text style={styles.rowSub}>Replace broken server links via Cloud DB</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
+              </TouchableOpacity>
+            </>
+          )}
 
-          <TouchableOpacity
-            onPress={() => router.push('/admin/streams' as any)}
-            activeOpacity={0.75}
-            style={styles.groupRowItem}
-          >
-            <View style={styles.rowIconPod}>
-              <Ionicons name="hardware-chip-outline" size={18} color="#e50914" />
-            </View>
-            <View style={styles.rowTextGroup}>
-              <Text style={styles.rowTitle}>Stream Link Overrides</Text>
-              <Text style={styles.rowSub}>Replace broken server links via Cloud DB</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
-          </TouchableOpacity>
 
 
           <TouchableOpacity

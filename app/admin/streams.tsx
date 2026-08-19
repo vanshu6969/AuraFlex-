@@ -15,8 +15,20 @@ import { router } from 'expo-router';
 import { streamOverrideService, StreamOverrideRecord } from '../../lib/streamOverrides';
 import { tmdbService } from '../../lib/tmdb';
 import { showToast } from '../../lib/toast';
+import { supabase } from '../../lib/supabase';
+
+const ADMIN_EMAIL = 'tajinderyt1@gmail.com';
+const SECRET_PASSCODE = process.env.EXPO_PUBLIC_ADMIN_PASSCODE || 'auraflex786';
 
 export default function AdminStreamOverridesScreen() {
+  const [authorized, setAuthorized] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  // Passcode modal state
+  const [passcode, setPasscode] = useState('');
+
+  // Form states
   const [tmdbId, setTmdbId] = useState('');
   const [title, setTitle] = useState('');
   const [mediaType, setMediaType] = useState<'movie' | 'tv' | 'anime'>('movie');
@@ -28,16 +40,39 @@ export default function AdminStreamOverridesScreen() {
   const [overrides, setOverrides] = useState<StreamOverrideRecord[]>([]);
   const [loadingOverrides, setLoadingOverrides] = useState(true);
 
-  // Load existing stream overrides on mount
+  // Check logged in user session on mount
   useEffect(() => {
-    fetchOverrides();
+    supabase.auth.getSession().then(({ data }) => {
+      const email = data.session?.user?.email?.toLowerCase();
+      setUserEmail(email || null);
+      if (email === ADMIN_EMAIL) {
+        setAuthorized(true);
+      }
+      setCheckingAuth(false);
+    });
   }, []);
+
+  // Fetch stream overrides if authorized
+  useEffect(() => {
+    if (authorized) {
+      fetchOverrides();
+    }
+  }, [authorized]);
 
   const fetchOverrides = async () => {
     setLoadingOverrides(true);
     const data = await streamOverrideService.getAllOverrides();
     setOverrides(data);
     setLoadingOverrides(false);
+  };
+
+  const handleVerifyPasscode = () => {
+    if (passcode.trim() === SECRET_PASSCODE) {
+      setAuthorized(true);
+      showToast('Admin Access Granted via Passcode', 'success');
+    } else {
+      showToast('Invalid Secret Passcode', 'error');
+    }
   };
 
   // Lookup TMDB Details by ID
@@ -55,7 +90,6 @@ export default function AdminStreamOverridesScreen() {
       } else {
         showToast('No title found for TMDB ID', 'error');
       }
-
     } catch {
       showToast('Lookup failed', 'error');
     } finally {
@@ -113,6 +147,54 @@ export default function AdminStreamOverridesScreen() {
     }
   };
 
+  if (checkingAuth) {
+    return (
+      <View style={styles.lockContainer}>
+        <ActivityIndicator size="large" color="#e50914" />
+      </View>
+    );
+  }
+
+  // Lock Screen if not logged in as tajinderyt1@gmail.com and no valid passcode
+  if (!authorized) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.lockContainer}>
+          <View style={styles.lockCard}>
+            <View style={styles.lockIconPod}>
+              <Ionicons name="lock-closed" size={32} color="#e50914" />
+            </View>
+
+            <Text style={styles.lockTitle}>Admin Verification Required</Text>
+            <Text style={styles.lockSubtitle}>
+              Automatic access is granted when signed in as <Text style={styles.highlightText}>{ADMIN_EMAIL}</Text>.
+              {userEmail ? ` Current user: ${userEmail}` : ' You are currently not signed in.'}
+            </Text>
+
+            <View style={styles.passcodeBox}>
+              <Text style={styles.passcodeLabel}>Enter Secret Passcode</Text>
+              <TextInput
+                value={passcode}
+                onChangeText={setPasscode}
+                placeholder="Admin Passcode"
+                placeholderTextColor="#6b7280"
+                secureTextEntry
+                style={styles.passcodeInput}
+              />
+              <TouchableOpacity onPress={handleVerifyPasscode} style={styles.unlockBtn}>
+                <Text style={styles.unlockBtnText}>Unlock Admin Panel</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity onPress={() => router.back()} style={styles.cancelLockBtn}>
+              <Text style={styles.cancelLockText}>Return to App</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -123,7 +205,7 @@ export default function AdminStreamOverridesScreen() {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Centralized Stream Manager</Text>
           <View style={styles.adminBadge}>
-            <Text style={styles.adminBadgeText}>ADMIN</Text>
+            <Text style={styles.adminBadgeText}>ADMIN VERIFIED</Text>
           </View>
         </View>
 
@@ -300,6 +382,93 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 20,
   },
+  lockContainer: {
+    flex: 1,
+    backgroundColor: '#0b0c0f',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  lockCard: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: '#12141a',
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    alignItems: 'center',
+    gap: 14,
+  },
+  lockIconPod: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(229, 9, 20, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(229, 9, 20, 0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  lockTitle: {
+    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  lockSubtitle: {
+    color: '#9ca3af',
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: 'center',
+  },
+  highlightText: {
+    color: '#e50914',
+    fontWeight: '700',
+  },
+  passcodeBox: {
+    width: '100%',
+    gap: 8,
+    marginTop: 8,
+  },
+  passcodeLabel: {
+    color: '#e5e7eb',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  passcodeInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: '#ffffff',
+    fontSize: 14,
+    textAlign: 'center',
+    letterSpacing: 2,
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+  },
+  unlockBtn: {
+    backgroundColor: '#e50914',
+    paddingVertical: 13,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  unlockBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  cancelLockBtn: {
+    paddingVertical: 8,
+  },
+  cancelLockText: {
+    color: '#6b7280',
+    fontSize: 13,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -321,15 +490,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   adminBadge: {
-    backgroundColor: 'rgba(229, 9, 20, 0.2)',
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
     borderWidth: 1,
-    borderColor: 'rgba(229, 9, 20, 0.5)',
+    borderColor: 'rgba(16, 185, 129, 0.5)',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
   },
   adminBadgeText: {
-    color: '#e50914',
+    color: '#10b981',
     fontSize: 10,
     fontWeight: '900',
   },
