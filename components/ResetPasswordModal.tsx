@@ -13,6 +13,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { showToast } from '../lib/toast';
 
+export type ResetStep = 'EMAIL' | 'OTP' | 'PASSWORD';
+
 interface ResetPasswordModalProps {
   visible: boolean;
   onClose: () => void;
@@ -26,7 +28,7 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
   initialEmail = '',
   onSuccess,
 }) => {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<ResetStep>('EMAIL');
   const [email, setEmail] = useState(initialEmail);
   const [otpToken, setOtpToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -38,7 +40,7 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
   const [successMsg, setSuccessMsg] = useState('');
 
   const resetState = () => {
-    setStep(1);
+    setStep('EMAIL');
     setEmail(initialEmail);
     setOtpToken('');
     setNewPassword('');
@@ -71,7 +73,7 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
       } else {
         setSuccessMsg('6-Digit OTP Code sent to your email!');
         showToast('OTP Code Sent to Email', 'success');
-        setStep(2);
+        setStep('OTP');
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to send OTP code.');
@@ -101,9 +103,9 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
       if (error) {
         setErrorMsg(error.message || 'Invalid or expired OTP code.');
       } else {
-        setSuccessMsg('OTP Code verified! Please enter your new password.');
+        setSuccessMsg('OTP Code verified! Enter your new password below.');
         showToast('OTP Verified!', 'success');
-        setStep(3);
+        setStep('PASSWORD');
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to verify OTP code.');
@@ -167,29 +169,29 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
           <View style={styles.header}>
             <View style={styles.iconCircle}>
               <Ionicons
-                name={step === 1 ? 'mail-unread-outline' : step === 2 ? 'keypad-outline' : 'key-outline'}
+                name={step === 'EMAIL' ? 'mail-unread-outline' : step === 'OTP' ? 'keypad-outline' : 'key-outline'}
                 size={24}
                 color="#e50914"
               />
             </View>
             <Text style={styles.title}>
-              {step === 1 ? 'Reset Password' : step === 2 ? 'Enter 6-Digit OTP' : 'Create New Password'}
+              {step === 'EMAIL' ? 'Reset Password' : step === 'OTP' ? 'Enter 6-Digit OTP' : 'Set New Password'}
             </Text>
             <Text style={styles.subtitle}>
-              {step === 1
+              {step === 'EMAIL'
                 ? 'Enter your email to receive a 6-digit verification code'
-                : step === 2
+                : step === 'OTP'
                 ? `Verification code sent to ${email}`
                 : 'Set a secure new password for your account'}
             </Text>
 
             {/* Step Progress Dots */}
             <View style={styles.stepDotsRow}>
-              <View style={[styles.dot, step >= 1 && styles.dotActive]} />
+              <View style={[styles.dot, (step === 'EMAIL' || step === 'OTP' || step === 'PASSWORD') && styles.dotActive]} />
               <View style={styles.dotLine} />
-              <View style={[styles.dot, step >= 2 && styles.dotActive]} />
+              <View style={[styles.dot, (step === 'OTP' || step === 'PASSWORD') && styles.dotActive]} />
               <View style={styles.dotLine} />
-              <View style={[styles.dot, step >= 3 && styles.dotActive]} />
+              <View style={[styles.dot, step === 'PASSWORD' && styles.dotActive]} />
             </View>
           </View>
 
@@ -197,8 +199,8 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
           {errorMsg ? <Text style={styles.errorAlert}>{errorMsg}</Text> : null}
           {successMsg ? <Text style={styles.successAlert}>{successMsg}</Text> : null}
 
-          {/* --- Step 1: Email Input --- */}
-          {step === 1 && (
+          {/* --- RENDER BLOCK 1: STEP EMAIL --- */}
+          {step === 'EMAIL' && (
             <View style={styles.formView}>
               <View style={styles.inputBox}>
                 <Ionicons name="mail-outline" size={18} color="#9ca3af" />
@@ -223,13 +225,13 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
             </View>
           )}
 
-          {/* --- Step 2: 6-Digit OTP Code Entry --- */}
-          {step === 2 && (
+          {/* --- RENDER BLOCK 2: STEP OTP (Strictly OTP code input ONLY, NO password inputs here) --- */}
+          {step === 'OTP' && (
             <View style={styles.formView}>
               <View style={styles.lockedEmailRow}>
                 <Text style={styles.lockedEmailLabel}>TARGET EMAIL:</Text>
                 <Text style={styles.lockedEmailText} numberOfLines={1}>{email}</Text>
-                <TouchableOpacity onPress={() => setStep(1)} style={styles.changeEmailBtn}>
+                <TouchableOpacity onPress={() => setStep('EMAIL')} style={styles.changeEmailBtn}>
                   <Text style={styles.changeEmailText}>Change</Text>
                 </TouchableOpacity>
               </View>
@@ -264,8 +266,8 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
             </View>
           )}
 
-          {/* --- Step 3: Set New Password --- */}
-          {step === 3 && (
+          {/* --- RENDER BLOCK 3: STEP PASSWORD (Strictly New Password inputs ONLY, revealed only after OTP verification) --- */}
+          {step === 'PASSWORD' && (
             <View style={styles.formView}>
               <View style={styles.inputBox}>
                 <Ionicons name="lock-closed-outline" size={18} color="#9ca3af" />

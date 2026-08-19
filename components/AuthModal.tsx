@@ -11,7 +11,7 @@ interface AuthModalProps {
 
 export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
   const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
-  const [forgotStep, setForgotStep] = useState<'email' | 'otp'>('email');
+  const [forgotStep, setForgotStep] = useState<'email' | 'otp' | 'password'>('email');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -102,7 +102,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
         setLoading(false);
       }
     } else if (mode === 'forgot') {
-      // 2-Step OTP Password Reset Flow
+      // 3-Step OTP Password Reset Flow
       if (forgotStep === 'email') {
         if (!email.trim()) {
           setErrorMsg('Please enter your email address.');
@@ -123,10 +123,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
           setLoading(false);
         }
       } else if (forgotStep === 'otp') {
-        if (!otpToken.trim()) {
-          setErrorMsg('Please enter the 6-digit OTP code.');
+        if (!otpToken.trim() || otpToken.trim().length !== 6) {
+          setErrorMsg('Please enter a valid 6-digit OTP code.');
           return;
         }
+
+        setLoading(true);
+        try {
+          // 1. Verify 6-digit OTP Token with Supabase Auth Recovery
+          const { error: verifyErr } = await supabase.auth.verifyOtp({
+            email: email.trim(),
+            token: otpToken.trim(),
+            type: 'recovery',
+          });
+
+          if (verifyErr) {
+            setErrorMsg(verifyErr.message || 'Invalid or expired OTP code.');
+          } else {
+            setSuccessMsg('OTP Code verified! Enter your new password below.');
+            setForgotStep('password');
+          }
+        } catch (err: any) {
+          setErrorMsg(err.message || 'Failed to verify OTP code.');
+        } finally {
+          setLoading(false);
+        }
+      } else if (forgotStep === 'password') {
         if (!newPassword || !confirmPassword) {
           setErrorMsg('Please enter both new password fields.');
           return;
@@ -142,21 +164,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
 
         setLoading(true);
         try {
-          // 1. Verify 6-digit OTP Token with Supabase Auth Recovery
-          const { data: verifyData, error: verifyErr } = await supabase.auth.verifyOtp({
-            email: email.trim(),
-            token: otpToken.trim(),
-            type: 'recovery',
-          });
-
-          if (verifyErr) {
-            setErrorMsg(verifyErr.message || 'Invalid or expired OTP code.');
-            setLoading(false);
-            return;
-          }
-
-          // 2. Immediately update password once recovery session is established
-          const { error: updateErr } = await supabase.auth.updateUser({
+          const { data: updateData, error: updateErr } = await supabase.auth.updateUser({
             password: newPassword,
           });
 
@@ -164,8 +172,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
             setErrorMsg(updateErr.message);
           } else {
             setSuccessMsg('Password updated successfully! Welcome back.');
-            if (verifyData?.user) {
-              setUser(verifyData.user);
+            if (updateData?.user) {
+              setUser(updateData.user);
             }
             await storageService.syncLocalToSupabase();
             setTimeout(() => {
@@ -175,7 +183,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
             }, 1500);
           }
         } catch (err: any) {
-          setErrorMsg(err.message || 'Failed to verify OTP code.');
+          setErrorMsg(err.message || 'Failed to update password.');
         } finally {
           setLoading(false);
         }
@@ -216,6 +224,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
                 : mode === 'forgot'
                 ? forgotStep === 'otp'
                   ? 'Enter 6-Digit OTP'
+                  : forgotStep === 'password'
+                  ? 'Set New Password'
                   : 'Reset Password'
                 : 'Welcome Back'}
             </Text>
@@ -225,6 +235,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
                 : mode === 'forgot'
                 ? forgotStep === 'otp'
                   ? `Enter the 6-digit code sent to ${email}`
+                  : forgotStep === 'password'
+                  ? 'OTP verified! Enter a new password for your account'
                   : 'Receive a 6-digit OTP code directly in your email'
                 : 'Sync watch history and watchlist seamlessly across all devices'}
             </Text>
@@ -257,16 +269,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
             </View>
           ) : (
             <View style={styles.formView}>
-              {/* Step 1 Email Input (or locked Email preview in Step 2) */}
-              {mode === 'forgot' && forgotStep === 'otp' ? (
-                <View style={styles.lockedEmailRow}>
-                  <Text style={styles.lockedEmailLabel}>EMAIL:</Text>
-                  <Text style={styles.lockedEmailText}>{email}</Text>
-                  <TouchableOpacity onPress={() => setForgotStep('email')} style={styles.changeEmailBtn}>
-                    <Text style={styles.changeEmailText}>Change</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
+              {/* --- STEP 1: Email Input (For signin, signup, or forgot step 'email') --- */}
+              {mode !== 'forgot' || forgotStep === 'email' ? (
                 <View style={styles.inputBox}>
                   <Ionicons name="mail-outline" size={18} color="#9ca3af" />
                   <TextInput
@@ -279,7 +283,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
                     keyboardType="email-address"
                   />
                 </View>
-              )}
+              ) : null}
 
               {/* Password Input (SignIn / SignUp mode) */}
               {mode !== 'forgot' && (
@@ -299,10 +303,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
                 </View>
               )}
 
-              {/* OTP Inputs (Forgot Password Step 2) */}
+              {/* --- STEP 2: OTP Entry ONLY (Forgot Password Step 'otp') --- */}
               {mode === 'forgot' && forgotStep === 'otp' && (
                 <>
-                  {/* 6-Digit OTP Code */}
+                  <View style={styles.lockedEmailRow}>
+                    <Text style={styles.lockedEmailLabel}>EMAIL:</Text>
+                    <Text style={styles.lockedEmailText}>{email}</Text>
+                    <TouchableOpacity onPress={() => setForgotStep('email')} style={styles.changeEmailBtn}>
+                      <Text style={styles.changeEmailText}>Change</Text>
+                    </TouchableOpacity>
+                  </View>
+
                   <View style={styles.inputBox}>
                     <Ionicons name="keypad-outline" size={18} color="#e50914" />
                     <TextInput
@@ -318,13 +329,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
                       {...(Platform.OS === 'web' ? ({ pattern: '[0-9]*' } as any) : {})}
                     />
                   </View>
+                </>
+              )}
 
-                  {/* New Password */}
+              {/* --- STEP 3: Password Update ONLY (Forgot Password Step 'password') --- */}
+              {mode === 'forgot' && forgotStep === 'password' && (
+                <>
                   <View style={styles.inputBox}>
                     <Ionicons name="lock-closed-outline" size={18} color="#9ca3af" />
                     <TextInput
                       style={styles.textInput}
-                      placeholder="New Password"
+                      placeholder="New Password (min 6 chars)"
                       placeholderTextColor="#6b7280"
                       value={newPassword}
                       onChangeText={setNewPassword}
@@ -336,7 +351,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
                     </TouchableOpacity>
                   </View>
 
-                  {/* Confirm New Password */}
                   <View style={styles.inputBox}>
                     <Ionicons name="lock-closed-outline" size={18} color="#9ca3af" />
                     <TextInput
@@ -349,7 +363,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
                       autoComplete="new-password"
                     />
                   </View>
-
                 </>
               )}
 
@@ -370,12 +383,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
                       ? 'Create Account'
                       : mode === 'forgot'
                       ? forgotStep === 'otp'
-                        ? 'Verify & Update Password'
+                        ? 'Verify OTP Code'
+                        : forgotStep === 'password'
+                        ? 'Update Password'
                         : 'Send 6-Digit OTP Code'
                       : 'Sign In'}
                   </Text>
                 )}
               </TouchableOpacity>
+
+              {/* Resend Code link during OTP step */}
+              {mode === 'forgot' && forgotStep === 'otp' && (
+                <TouchableOpacity onPress={handleAuth} style={styles.resendBtn}>
+                  <Text style={styles.resendText}>Didn't receive code? Resend OTP</Text>
+                </TouchableOpacity>
+              )}
 
               {/* Toggle Mode Footer */}
               <View style={styles.toggleRow}>
@@ -559,6 +581,14 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '700',
+  },
+  resendBtn: {
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  resendText: {
+    color: '#9ca3af',
+    fontSize: 12,
   },
   toggleRow: {
     alignItems: 'center',
