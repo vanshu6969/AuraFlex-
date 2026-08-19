@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,11 +19,90 @@ export default function UpdatePasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [verifyingSession, setVerifyingSession] = useState(true);
+  const [hasValidSession, setHasValidSession] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const initializeRecoverySession = async () => {
+      try {
+        // 1. Check for PKCE ?code= parameter in URL query string (web environment)
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          const urlParams = new URLSearchParams(window.location.search);
+          const code = urlParams.get('code');
+          if (code) {
+            const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+            if (!error && data?.session) {
+              if (isMounted) {
+                setHasValidSession(true);
+                setVerifyingSession(false);
+                setErrorMsg('');
+              }
+              return;
+            }
+          }
+        }
+
+        // 2. Check for active session in memory / local storage
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session) {
+          if (isMounted) {
+            setHasValidSession(true);
+            setVerifyingSession(false);
+            setErrorMsg('');
+          }
+          return;
+        }
+
+        // 3. Fallback timeout to allow background PKCE or hash token exchange to settle
+        setTimeout(async () => {
+          if (!isMounted) return;
+          const { data: retrySession } = await supabase.auth.getSession();
+          if (retrySession?.session) {
+            setHasValidSession(true);
+            setErrorMsg('');
+          } else {
+            setHasValidSession(false);
+            setErrorMsg('Auth session missing! Please click the password reset link from your email again or request a new one.');
+          }
+          setVerifyingSession(false);
+        }, 1500);
+      } catch (err: any) {
+        if (isMounted) {
+          setHasValidSession(false);
+          setErrorMsg(err?.message || 'Failed to verify reset session.');
+          setVerifyingSession(false);
+        }
+      }
+    };
+
+    // Listen for PASSWORD_RECOVERY or SIGNED_IN auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN' || session) && isMounted) {
+        setHasValidSession(true);
+        setVerifyingSession(false);
+        setErrorMsg('');
+      }
+    });
+
+    initializeRecoverySession();
+
+    return () => {
+      isMounted = false;
+      authListener?.subscription?.unsubscribe();
+    };
+  }, []);
+
   // Handle password update via Supabase auth.updateUser
   const handleUpdatePassword = async () => {
+    if (!hasValidSession) {
+      setErrorMsg('Auth session missing! Please request a new password reset link.');
+      return;
+    }
+
     if (!password || !confirmPassword) {
       setErrorMsg('Please enter both password fields.');
       return;
@@ -63,6 +142,20 @@ export default function UpdatePasswordPage() {
       setLoading(false);
     }
   };
+
+  if (verifyingSession) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+          <View style={styles.card}>
+            <ActivityIndicator size="large" color="#e50914" style={{ marginBottom: 16 }} />
+            <Text style={styles.title}>Verifying Session...</Text>
+            <Text style={styles.subtitle}>Connecting to authentication service</Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -107,6 +200,7 @@ export default function UpdatePasswordPage() {
                 placeholderTextColor="#6b7280"
                 secureTextEntry={!showPassword}
                 style={styles.textInput}
+                editable={hasValidSession && !loading}
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
                 <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color="#9ca3af" />
@@ -126,6 +220,7 @@ export default function UpdatePasswordPage() {
                 placeholderTextColor="#6b7280"
                 secureTextEntry={!showPassword}
                 style={styles.textInput}
+                editable={hasValidSession && !loading}
               />
             </View>
           </View>
@@ -133,8 +228,8 @@ export default function UpdatePasswordPage() {
           {/* Submit Button */}
           <TouchableOpacity
             onPress={handleUpdatePassword}
-            disabled={loading}
-            style={styles.submitBtn}
+            disabled={loading || !hasValidSession}
+            style={[styles.submitBtn, (!hasValidSession || loading) && styles.disabledBtn]}
             activeOpacity={0.85}
           >
             {loading ? (
@@ -286,6 +381,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 10,
     elevation: 6,
+  },
+  disabledBtn: {
+    opacity: 0.5,
+    backgroundColor: '#4b5563',
+    shadowOpacity: 0,
   },
   submitBtnText: {
     color: '#ffffff',
