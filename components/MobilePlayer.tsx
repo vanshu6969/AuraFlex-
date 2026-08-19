@@ -56,6 +56,13 @@ const adBlockScript = `
   true;
 `;
 
+const getApiUrl = (pathWithQuery: string) => {
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return `https://auraflexmovies.vercel.app${pathWithQuery}`;
+  }
+  return pathWithQuery;
+};
+
 export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initialSeason = 1, episode: initialEpisode = 1 }) => {
   const isPunjabi = isPunjabiMedia(media);
   const isKdrama = isKdramaOrCdrama(media);
@@ -92,7 +99,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
 
       const resolveStream = async () => {
         try {
-          const res = await fetch(`/api/streamtape?file=${encodeURIComponent(fileId)}&json=1`);
+          const res = await fetch(getApiUrl(`/api/streamtape?file=${encodeURIComponent(fileId)}&json=1`));
           const data = await res.json();
           if (data.success && data.streamUrl && isMounted) {
             setStreamtapeMp4Url(data.streamUrl);
@@ -102,7 +109,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
         } catch (e) {}
 
         if (isMounted) {
-          setStreamtapeMp4Url(`/api/streamtape?url=${encodeURIComponent(rawUrl)}`);
+          setStreamtapeMp4Url(getApiUrl(`/api/streamtape?url=${encodeURIComponent(rawUrl)}`));
           setResolvingStreamtape(false);
         }
       };
@@ -482,7 +489,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
         ) : customOverride?.streamtape_url ? (
           <TouchableOpacity
             onPress={() => {
-              const proxyDownloadUrl = `/api/streamtape?url=${encodeURIComponent(customOverride.streamtape_url!)}&download=1`;
+              const proxyDownloadUrl = getApiUrl(`/api/streamtape?url=${encodeURIComponent(customOverride.streamtape_url!)}&download=1`);
               showToast('Starting high-speed StreamTape download...', 'success');
               if (Platform.OS === 'web' && typeof window !== 'undefined') {
                 window.location.href = proxyDownloadUrl;
