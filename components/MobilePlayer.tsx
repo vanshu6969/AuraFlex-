@@ -63,6 +63,8 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
   const isSeries = media.media_type === 'tv' || (media.media_type === 'anime' && (media.episodes_count || 0) > 1);
 
   const [customOverride, setCustomOverride] = useState<StreamOverrideRecord | null>(null);
+  const [streamtapeMp4Url, setStreamtapeMp4Url] = useState<string | null>(null);
+  const [resolvingStreamtape, setResolvingStreamtape] = useState(false);
 
   useEffect(() => {
     streamOverrideService.getOverride(media.id).then((override) => {
@@ -76,6 +78,66 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
       }
     });
   }, [media.id]);
+
+  useEffect(() => {
+    if (activeServerId === 'custom_streamtape' && customOverride?.streamtape_url) {
+      let isMounted = true;
+      setResolvingStreamtape(true);
+      setStreamtapeMp4Url(null);
+
+      const rawUrl = customOverride.streamtape_url;
+      const match = String(rawUrl).match(/(?:\/e\/|\/v\/|file=)([a-zA-Z0-9_-]+)/);
+      const fileId = match ? match[1] : rawUrl.trim();
+
+      const resolveStream = async () => {
+        try {
+          const res = await fetch(`/api/streamtape?file=${encodeURIComponent(fileId)}`);
+          const data = await res.json();
+          if (data.success && data.streamUrl && isMounted) {
+            setStreamtapeMp4Url(data.streamUrl);
+            setResolvingStreamtape(false);
+            return;
+          }
+        } catch (e) {}
+
+        try {
+          const login = '3d3c20e1f2980d24f437';
+          const key = 'xeqQKo1OJBFk2OQ';
+          const ticketUrl = `https://api.streamtape.com/file/dlticket?file=${encodeURIComponent(fileId)}&login=${login}&key=${key}`;
+          const tRes = await fetch(ticketUrl);
+          const tData = await tRes.json();
+
+          if (tData.status === 200 && tData.result?.ticket) {
+            const waitTimeMs = ((tData.result.wait_time || 5) + 0.5) * 1000;
+            await new Promise((r) => setTimeout(r, waitTimeMs));
+
+            const dlUrl = `https://api.streamtape.com/file/dl?file=${encodeURIComponent(fileId)}&ticket=${encodeURIComponent(tData.result.ticket)}&login=${login}&key=${key}`;
+            const dlRes = await fetch(dlUrl);
+            const dlData = await dlRes.json();
+
+            if (dlData.status === 200 && dlData.result?.url && isMounted) {
+              setStreamtapeMp4Url(dlData.result.url);
+              setResolvingStreamtape(false);
+              return;
+            }
+          }
+        } catch (e) {}
+
+        if (isMounted) {
+          setResolvingStreamtape(false);
+        }
+      };
+
+      resolveStream();
+
+      return () => {
+        isMounted = false;
+      };
+    } else {
+      setStreamtapeMp4Url(null);
+      setResolvingStreamtape(false);
+    }
+  }, [activeServerId, customOverride?.streamtape_url]);
 
   const customServerObj: EmbedServer | null = customOverride?.custom_stream_url
     ? {
@@ -483,6 +545,48 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
                 isSeries={isSeries}
                 onSwitchServer={triggerAutoFallback}
               />
+            ) : activeServerId === 'custom_streamtape' && (resolvingStreamtape || streamtapeMp4Url) ? (
+              <>
+                {resolvingStreamtape ? (
+                  <View style={styles.loadingOverlay}>
+                    <ActivityIndicator size="large" color="#10b981" />
+                    <Text style={[styles.loadingText, { color: '#10b981', fontWeight: '800', marginTop: 8 }]}>
+                      Connecting to StreamTape Server #2 HD Stream...
+                    </Text>
+                    <Text style={{ color: '#9ca3af', fontSize: 11, textAlign: 'center', paddingHorizontal: 20 }}>
+                      Resolving direct high-speed 1080p stream (Bypassing ISP restrictions)...
+                    </Text>
+                  </View>
+                ) : streamtapeMp4Url ? (
+                  Platform.OS === 'web' ? (
+                    <video
+                      key={streamtapeMp4Url}
+                      src={streamtapeMp4Url}
+                      controls
+                      autoPlay
+                      playsInline
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'contain',
+                        backgroundColor: '#000',
+                      }}
+                    />
+                  ) : (
+                    <WebView
+                      key={streamtapeMp4Url}
+                      source={{
+                        html: `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>body,html{margin:0;padding:0;width:100%;height:100%;background:#000;display:flex;justify-content:center;align-items:center;}video{width:100%;height:100%;object-fit:contain;}</style></head><body><video src="${streamtapeMp4Url}" controls autoplay playsinline></video></body></html>`,
+                      }}
+                      style={styles.webview}
+                      allowsFullscreenVideo
+                      javaScriptEnabled
+                      domStorageEnabled
+                      allowsInlineMediaPlayback
+                    />
+                  )
+                ) : null}
+              </>
             ) : (
               <>
                 {loading && (
