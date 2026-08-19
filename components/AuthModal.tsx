@@ -217,7 +217,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
               />
             </View>
             <Text style={styles.title}>
-              {user
+              {user && mode !== 'forgot'
                 ? 'Account Settings'
                 : mode === 'signup'
                 ? 'Create AuraFlex Account'
@@ -230,7 +230,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
                 : 'Welcome Back'}
             </Text>
             <Text style={styles.subtitle}>
-              {user
+              {user && mode !== 'forgot'
                 ? 'Cloud watchlist & watch progress active'
                 : mode === 'forgot'
                 ? forgotStep === 'otp'
@@ -245,7 +245,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
           {errorMsg ? <Text style={styles.errorAlert}>{errorMsg}</Text> : null}
           {successMsg ? <Text style={styles.successAlert}>{successMsg}</Text> : null}
 
-          {user ? (
+          {user && mode !== 'forgot' ? (
             <View style={styles.loggedInView}>
               <View style={styles.userInfoBox}>
                 <Text style={styles.userLabel}>SIGNED IN AS</Text>
@@ -268,6 +268,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
               </TouchableOpacity>
             </View>
           ) : (
+
             <View style={styles.formView}>
               {/* --- STEP 1: Email Input (For signin, signup, or forgot step 'email') --- */}
               {mode !== 'forgot' || forgotStep === 'email' ? (
