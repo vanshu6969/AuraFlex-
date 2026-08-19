@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Modal, StyleSheet, ActivityIndicator } from 'react-native';
-
+import { View, Text, TextInput, TouchableOpacity, Modal, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { storageService } from '../lib/storage';
@@ -12,9 +11,17 @@ interface AuthModalProps {
 
 export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
   const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
+  const [forgotStep, setForgotStep] = useState<'email' | 'otp'>('email');
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // OTP Reset password states
+  const [otpToken, setOtpToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -32,19 +39,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  const handleAuth = async () => {
-    if (!email || (mode !== 'forgot' && !password)) {
-      setErrorMsg('Please fill in all fields.');
-      return;
-    }
+  const resetFormState = () => {
+    setErrorMsg('');
+    setSuccessMsg('');
+    setOtpToken('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setForgotStep('email');
+  };
 
-    setLoading(true);
+  const handleSwitchMode = (newMode: 'signin' | 'signup' | 'forgot') => {
+    setMode(newMode);
+    resetFormState();
+  };
+
+  const handleAuth = async () => {
     setErrorMsg('');
     setSuccessMsg('');
 
-    try {
-      if (mode === 'signup') {
-        const { data, error } = await supabase.auth.signUp({ email, password });
+    if (mode === 'signup') {
+      if (!email || !password) {
+        setErrorMsg('Please fill in all fields.');
+        return;
+      }
+      setLoading(true);
+      try {
+        const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
         if (error) {
           setErrorMsg(error.message);
         } else {
@@ -55,8 +75,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
             setTimeout(onClose, 1200);
           }
         }
-      } else if (mode === 'signin') {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      } catch (err: any) {
+        setErrorMsg(err.message || 'Registration failed.');
+      } finally {
+        setLoading(false);
+      }
+    } else if (mode === 'signin') {
+      if (!email || !password) {
+        setErrorMsg('Please fill in all fields.');
+        return;
+      }
+      setLoading(true);
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         if (error) {
           setErrorMsg(error.message);
         } else {
@@ -65,37 +96,91 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
           await storageService.syncLocalToSupabase();
           setTimeout(onClose, 1000);
         }
-      } else if (mode === 'forgot') {
-        const redirectUrl =
-          typeof window !== 'undefined'
-            ? `${window.location.origin}/auth/update-password`
-            : 'https://auraflexmovies.vercel.app/auth/update-password';
+      } catch (err: any) {
+        setErrorMsg(err.message || 'Sign in failed.');
+      } finally {
+        setLoading(false);
+      }
+    } else if (mode === 'forgot') {
+      // 2-Step OTP Password Reset Flow
+      if (forgotStep === 'email') {
+        if (!email.trim()) {
+          setErrorMsg('Please enter your email address.');
+          return;
+        }
+        setLoading(true);
+        try {
+          const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+          if (error) {
+            setErrorMsg(error.message);
+          } else {
+            setSuccessMsg('6-digit OTP code sent to your email!');
+            setForgotStep('otp');
+          }
+        } catch (err: any) {
+          setErrorMsg(err.message || 'Failed to send OTP code.');
+        } finally {
+          setLoading(false);
+        }
+      } else if (forgotStep === 'otp') {
+        if (!otpToken.trim()) {
+          setErrorMsg('Please enter the 6-digit OTP code.');
+          return;
+        }
+        if (!newPassword || !confirmPassword) {
+          setErrorMsg('Please enter both new password fields.');
+          return;
+        }
+        if (newPassword.length < 6) {
+          setErrorMsg('New password must be at least 6 characters.');
+          return;
+        }
+        if (newPassword !== confirmPassword) {
+          setErrorMsg('Passwords do not match.');
+          return;
+        }
 
+        setLoading(true);
+        try {
+          // 1. Verify 6-digit OTP Token with Supabase Auth Recovery
+          const { data: verifyData, error: verifyErr } = await supabase.auth.verifyOtp({
+            email: email.trim(),
+            token: otpToken.trim(),
+            type: 'recovery',
+          });
 
-        const resetPromise = supabase.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl });
-        const timeoutPromise = new Promise<{ error: any }>((_, reject) =>
-          setTimeout(
-            () =>
-              reject(
-                new Error('Supabase Auth SMTP connection timed out (HTTP 504). Please verify your SMTP settings in Supabase Dashboard -> Auth -> Email.')
-              ),
-            12000
-          )
-        );
+          if (verifyErr) {
+            setErrorMsg(verifyErr.message || 'Invalid or expired OTP code.');
+            setLoading(false);
+            return;
+          }
 
-        const res: any = await Promise.race([resetPromise, timeoutPromise]);
-        if (res?.error) {
-          setErrorMsg(res.error.message || 'Password reset failed.');
-        } else {
-          setSuccessMsg('Password reset link sent! Check your inbox.');
+          // 2. Immediately update password once recovery session is established
+          const { error: updateErr } = await supabase.auth.updateUser({
+            password: newPassword,
+          });
+
+          if (updateErr) {
+            setErrorMsg(updateErr.message);
+          } else {
+            setSuccessMsg('Password updated successfully! Welcome back.');
+            if (verifyData?.user) {
+              setUser(verifyData.user);
+            }
+            await storageService.syncLocalToSupabase();
+            setTimeout(() => {
+              onClose();
+              resetFormState();
+              setMode('signin');
+            }, 1500);
+          }
+        } catch (err: any) {
+          setErrorMsg(err.message || 'Failed to verify OTP code.');
+        } finally {
+          setLoading(false);
         }
       }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Authentication request timed out. Please try again.');
-    } finally {
-      setLoading(false);
     }
-
   };
 
   const handleSignOut = async () => {
@@ -103,7 +188,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
     await supabase.auth.signOut();
     setUser(null);
     setLoading(false);
-    setSuccessMsg('Signed out.');
+    setSuccessMsg('Signed out successfully.');
     setTimeout(onClose, 1000);
   };
 
@@ -117,7 +202,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
 
           <View style={styles.header}>
             <View style={styles.iconCircle}>
-              <Ionicons name="sparkles" size={24} color="#e50914" />
+              <Ionicons
+                name={mode === 'forgot' ? 'key-outline' : 'sparkles'}
+                size={24}
+                color="#e50914"
+              />
             </View>
             <Text style={styles.title}>
               {user
@@ -125,12 +214,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
                 : mode === 'signup'
                 ? 'Create AuraFlex Account'
                 : mode === 'forgot'
-                ? 'Reset Password'
+                ? forgotStep === 'otp'
+                  ? 'Enter 6-Digit OTP'
+                  : 'Reset Password'
                 : 'Welcome Back'}
             </Text>
             <Text style={styles.subtitle}>
               {user
                 ? 'Cloud watchlist & watch progress active'
+                : mode === 'forgot'
+                ? forgotStep === 'otp'
+                  ? `Enter the 6-digit code sent to ${email}`
+                  : 'Receive a 6-digit OTP code directly in your email'
                 : 'Sync watch history and watchlist seamlessly across all devices'}
             </Text>
           </View>
@@ -146,7 +241,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
                 <View style={styles.badgeRow}>
                   <Ionicons name="cloud-done" size={16} color="#10b981" />
                   <Text style={styles.badgeText}>Cloud Sync Active</Text>
-
                 </View>
               </View>
 
@@ -163,21 +257,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
             </View>
           ) : (
             <View style={styles.formView}>
-              {/* Email Input */}
-              <View style={styles.inputBox}>
-                <Ionicons name="mail-outline" size={18} color="#9ca3af" />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Email Address"
-                  placeholderTextColor="#6b7280"
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                />
-              </View>
+              {/* Step 1 Email Input (or locked Email preview in Step 2) */}
+              {mode === 'forgot' && forgotStep === 'otp' ? (
+                <View style={styles.lockedEmailRow}>
+                  <Text style={styles.lockedEmailLabel}>EMAIL:</Text>
+                  <Text style={styles.lockedEmailText}>{email}</Text>
+                  <TouchableOpacity onPress={() => setForgotStep('email')} style={styles.changeEmailBtn}>
+                    <Text style={styles.changeEmailText}>Change</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.inputBox}>
+                  <Ionicons name="mail-outline" size={18} color="#9ca3af" />
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Email Address"
+                    placeholderTextColor="#6b7280"
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                  />
+                </View>
+              )}
 
-              {/* Password Input (Hidden for Forgot Password mode) */}
+              {/* Password Input (SignIn / SignUp mode) */}
               {mode !== 'forgot' && (
                 <View style={styles.inputBox}>
                   <Ionicons name="lock-closed-outline" size={18} color="#9ca3af" />
@@ -195,9 +299,57 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
                 </View>
               )}
 
-              {/* Forgot Password Link */}
+              {/* OTP Inputs (Forgot Password Step 2) */}
+              {mode === 'forgot' && forgotStep === 'otp' && (
+                <>
+                  {/* 6-Digit OTP Code */}
+                  <View style={styles.inputBox}>
+                    <Ionicons name="keypad-outline" size={18} color="#e50914" />
+                    <TextInput
+                      style={[styles.textInput, styles.otpInput]}
+                      placeholder="6-Digit OTP Code"
+                      placeholderTextColor="#6b7280"
+                      value={otpToken}
+                      onChangeText={setOtpToken}
+                      keyboardType="numeric"
+                      maxLength={6}
+                    />
+                  </View>
+
+                  {/* New Password */}
+                  <View style={styles.inputBox}>
+                    <Ionicons name="lock-closed-outline" size={18} color="#9ca3af" />
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="New Password"
+                      placeholderTextColor="#6b7280"
+                      value={newPassword}
+                      onChangeText={setNewPassword}
+                      secureTextEntry={!showPassword}
+                    />
+                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                      <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color="#9ca3af" />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Confirm New Password */}
+                  <View style={styles.inputBox}>
+                    <Ionicons name="lock-closed-outline" size={18} color="#9ca3af" />
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Confirm New Password"
+                      placeholderTextColor="#6b7280"
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      secureTextEntry={!showPassword}
+                    />
+                  </View>
+                </>
+              )}
+
+              {/* Forgot Password trigger in signin mode */}
               {mode === 'signin' && (
-                <TouchableOpacity onPress={() => setMode('forgot')} style={styles.forgotBtn}>
+                <TouchableOpacity onPress={() => handleSwitchMode('forgot')} style={styles.forgotBtn}>
                   <Text style={styles.forgotText}>Forgot password?</Text>
                 </TouchableOpacity>
               )}
@@ -208,7 +360,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
                   <ActivityIndicator size="small" color="#ffffff" />
                 ) : (
                   <Text style={styles.btnText}>
-                    {mode === 'signup' ? 'Create Account' : mode === 'forgot' ? 'Send Reset Link' : 'Sign In'}
+                    {mode === 'signup'
+                      ? 'Create Account'
+                      : mode === 'forgot'
+                      ? forgotStep === 'otp'
+                        ? 'Verify & Update Password'
+                        : 'Send 6-Digit OTP Code'
+                      : 'Sign In'}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -218,14 +376,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
                 {mode === 'signin' ? (
                   <Text style={styles.toggleSub}>
                     Don't have an account?{' '}
-                    <Text style={styles.toggleLink} onPress={() => setMode('signup')}>
+                    <Text style={styles.toggleLink} onPress={() => handleSwitchMode('signup')}>
                       Sign Up
                     </Text>
                   </Text>
                 ) : (
                   <Text style={styles.toggleSub}>
                     Already have an account?{' '}
-                    <Text style={styles.toggleLink} onPress={() => setMode('signin')}>
+                    <Text style={styles.toggleLink} onPress={() => handleSwitchMode('signin')}>
                       Sign In
                     </Text>
                   </Text>
@@ -242,7 +400,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -273,7 +431,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 18,
   },
   iconCircle: {
     width: 48,
@@ -295,6 +453,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     marginTop: 4,
+    paddingHorizontal: 8,
   },
   errorAlert: {
     backgroundColor: 'rgba(239, 68, 68, 0.15)',
@@ -321,6 +480,37 @@ const styles = StyleSheet.create({
   formView: {
     gap: 12,
   },
+  lockedEmailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    gap: 8,
+  },
+  lockedEmailLabel: {
+    color: '#6b7280',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  lockedEmailText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '600',
+    flex: 1,
+  },
+  changeEmailBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  changeEmailText: {
+    color: '#e50914',
+    fontSize: 11,
+    fontWeight: '700',
+  },
   inputBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -336,6 +526,12 @@ const styles = StyleSheet.create({
     flex: 1,
     color: '#ffffff',
     fontSize: 14,
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+  },
+  otpInput: {
+    letterSpacing: 4,
+    fontWeight: '800',
+    fontSize: 15,
   },
   forgotBtn: {
     alignSelf: 'flex-end',
