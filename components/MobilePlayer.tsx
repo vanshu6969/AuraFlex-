@@ -342,24 +342,26 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
       rawUrl = `https://${rawUrl}`;
     }
 
+    showToast('Opening direct download link...', 'success');
+
     try {
-      if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof document !== 'undefined') {
-        showToast('Opening direct download link...', 'success');
-        const link = document.createElement('a');
-        link.href = rawUrl;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        const win = window.open(rawUrl, '_blank', 'noopener,noreferrer');
+        if (!win || win.closed || typeof win.closed === 'undefined') {
+          // Fallback if popup is blocked: trigger direct navigation
+          window.location.href = rawUrl;
+        }
       } else {
-        showToast('Opening direct download link...', 'success');
         Linking.openURL(rawUrl).catch(() => {
           showToast('Unable to open download link', 'error');
         });
       }
     } catch (e) {
-      showToast('Error opening download link', 'error');
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.location.href = rawUrl;
+      } else {
+        showToast('Error opening download link', 'error');
+      }
     }
   };
 
