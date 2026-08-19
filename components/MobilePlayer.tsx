@@ -62,6 +62,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
   const isAnime = isAnimeMedia(media);
   const isSeries = media.media_type === 'tv' || (media.media_type === 'anime' && (media.episodes_count || 0) > 1);
 
+  const [activeServerId, setActiveServerId] = useState(() => 'videasy');
   const [customOverride, setCustomOverride] = useState<StreamOverrideRecord | null>(null);
   const [streamtapeMp4Url, setStreamtapeMp4Url] = useState<string | null>(null);
   const [resolvingStreamtape, setResolvingStreamtape] = useState(false);
@@ -132,8 +133,6 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
 
   const overrideServers = [customServerObj, streamtapeServerObj].filter(Boolean) as EmbedServer[];
   const availableServers = overrideServers.length ? [...overrideServers, ...baseServers] : baseServers;
-
-  const [activeServerId, setActiveServerId] = useState(() => 'videasy');
 
 
 
