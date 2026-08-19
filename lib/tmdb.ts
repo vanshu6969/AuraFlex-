@@ -404,7 +404,58 @@ export const tmdbService = {
   async getActionAdventureCollection(): Promise<MediaItem[]> {
     return this.getCategoryItems('action', 1);
   },
+
+  async getCredits(
+    mediaId: string | number,
+    mediaType: string = 'movie'
+  ): Promise<Array<{ id: number; name: string; character: string; profile_path: string | null }>> {
+    try {
+      const type = mediaType === 'tv' || mediaType === 'anime' ? 'tv' : 'movie';
+      const url = `${TMDB_BASE_URL}/${type}/${mediaId}/credits?api_key=${TMDB_API_KEY}&language=en-US`;
+      const res = await fetch(url);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (data.cast || []).slice(0, 18).map((person: any) => ({
+        id: person.id,
+        name: person.name,
+        character: person.character || 'Actor',
+        profile_path: person.profile_path ? `${IMAGE_BASE_URL}/w185${person.profile_path}` : null,
+      }));
+    } catch {
+      return [];
+    }
+  },
+
+  async getPersonCredits(
+    personId: number
+  ): Promise<{ name: string; biography: string; profile_path: string | null; works: MediaItem[] }> {
+    try {
+      const personUrl = `${TMDB_BASE_URL}/person/${personId}?api_key=${TMDB_API_KEY}&language=en-US`;
+      const creditsUrl = `${TMDB_BASE_URL}/person/${personId}/combined_credits?api_key=${TMDB_API_KEY}&language=en-US`;
+
+      const [personRes, creditsRes] = await Promise.all([fetch(personUrl), fetch(creditsUrl)]);
+      const personData = personRes.ok ? await personRes.json() : {};
+      const creditsData = creditsRes.ok ? await creditsRes.json() : {};
+
+      const rawWorks = (creditsData.cast || [])
+        .filter((w: any) => w.poster_path)
+        .sort((a: any, b: any) => (b.popularity || 0) - (a.popularity || 0))
+        .slice(0, 18);
+
+      const works = rawWorks.map((w: any) => this.formatMediaItem(w, w.media_type || 'movie'));
+
+      return {
+        name: personData.name || 'Actor',
+        biography: personData.biography || '',
+        profile_path: personData.profile_path ? `${IMAGE_BASE_URL}/w300${personData.profile_path}` : null,
+        works: deduplicateMediaList(works),
+      };
+    } catch {
+      return { name: 'Actor', biography: '', profile_path: null, works: [] };
+    }
+  },
 };
+
 
 
 

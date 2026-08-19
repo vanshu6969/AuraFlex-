@@ -15,6 +15,8 @@ import { ServerPillButton } from './ui/AuraButtons';
 import { ReportRequestModal } from './ReportRequestModal';
 import { YouTubePlayer } from './YouTubePlayer';
 import { EpisodeSlider } from './EpisodeSlider';
+import { MediaDetailsAndCast } from './MediaDetailsAndCast';
+
 
 
 interface MobilePlayerProps {
@@ -459,8 +461,11 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
         />
       )}
 
+      {/* About this Title & Top Cast Filmography Section */}
+      <MediaDetailsAndCast media={media} season={season} episode={episode} />
 
       {/* Report Broken Link Modal */}
+
       <ReportRequestModal
         visible={showReportModal}
         onClose={() => setShowReportModal(false)}
