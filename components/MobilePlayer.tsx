@@ -82,7 +82,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
         id: 'custom_vip',
         name: 'VIP Stream',
         badge: 'Direct VIP',
-        getUrl: () => customOverride.custom_stream_url,
+        getUrl: () => customOverride.custom_stream_url || '',
       }
     : null;
 

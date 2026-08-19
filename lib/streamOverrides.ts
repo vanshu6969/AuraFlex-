@@ -4,7 +4,7 @@ export interface StreamOverrideRecord {
   tmdb_id: string;
   title: string;
   media_type: 'movie' | 'tv' | 'anime';
-  custom_stream_url: string;
+  custom_stream_url?: string | null;
   backup_stream_url?: string | null;
   streamtape_url?: string | null;
   download_url?: string | null;
@@ -49,15 +49,15 @@ export const streamOverrideService = {
   },
 
   /**
-   * Upsert a custom stream URL override with StreamTape and Download link options
+   * Upsert a stream URL override with any combination of link options
    */
-  async upsertOverride(record: StreamOverrideRecord): Promise<boolean> {
+  async upsertOverride(record: StreamOverrideRecord): Promise<{ success: boolean; error?: string }> {
     try {
       const payload = {
         tmdb_id: String(record.tmdb_id),
         title: record.title || 'Untitled Stream',
         media_type: record.media_type || 'movie',
-        custom_stream_url: record.custom_stream_url,
+        custom_stream_url: record.custom_stream_url || null,
         backup_stream_url: record.backup_stream_url || null,
         streamtape_url: record.streamtape_url || null,
         download_url: record.download_url || null,
@@ -65,9 +65,12 @@ export const streamOverrideService = {
       };
 
       const { error } = await supabase.from('stream_overrides').upsert(payload);
-      return !error;
-    } catch (e) {
-      return false;
+      if (error) {
+        return { success: false, error: error.message };
+      }
+      return { success: true };
+    } catch (e: any) {
+      return { success: false, error: e.message || 'Unknown network error' };
     }
   },
 

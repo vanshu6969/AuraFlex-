@@ -101,24 +101,30 @@ export default function AdminStreamOverridesScreen() {
 
   // Save or Update Override
   const handleSave = async () => {
-    if (!tmdbId.trim() || !title.trim() || !customUrl.trim()) {
-      showToast('Please fill TMDB ID, Title, and Custom Stream URL', 'error');
+    if (!tmdbId.trim() || !title.trim()) {
+      showToast('Please enter a TMDB ID and Title.', 'error');
+      return;
+    }
+
+    // Ensure at least ONE link is provided
+    if (!customUrl.trim() && !streamtapeUrl.trim() && !downloadUrl.trim() && !backupUrl.trim()) {
+      showToast('Please provide at least one link (VIP Stream, StreamTape, or Download URL).', 'error');
       return;
     }
 
     setSaving(true);
-    const success = await streamOverrideService.upsertOverride({
+    const res = await streamOverrideService.upsertOverride({
       tmdb_id: tmdbId.trim(),
       title: title.trim(),
       media_type: mediaType,
-      custom_stream_url: customUrl.trim(),
+      custom_stream_url: customUrl.trim() || null,
       backup_stream_url: backupUrl.trim() || null,
       streamtape_url: streamtapeUrl.trim() || null,
       download_url: downloadUrl.trim() || null,
     });
     setSaving(false);
 
-    if (success) {
+    if (res.success) {
       showToast('Stream Override Saved Successfully!', 'success');
       setTmdbId('');
       setTitle('');
@@ -128,7 +134,7 @@ export default function AdminStreamOverridesScreen() {
       setDownloadUrl('');
       fetchOverrides();
     } else {
-      showToast('Failed to save stream override', 'error');
+      showToast(`Database Error: ${res.error || 'Failed to save stream override'}`, 'error');
     }
   };
 
@@ -137,7 +143,7 @@ export default function AdminStreamOverridesScreen() {
     setTmdbId(record.tmdb_id);
     setTitle(record.title);
     setMediaType(record.media_type);
-    setCustomUrl(record.custom_stream_url);
+    setCustomUrl(record.custom_stream_url || '');
     setBackupUrl(record.backup_stream_url || '');
     setStreamtapeUrl(record.streamtape_url || '');
     setDownloadUrl(record.download_url || '');
@@ -285,7 +291,7 @@ export default function AdminStreamOverridesScreen() {
 
           {/* Custom Primary Stream URL */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Custom Primary Stream URL (VIP Server #1) *</Text>
+            <Text style={styles.inputLabel}>Custom Primary Stream URL (VIP Server #1)</Text>
             <TextInput
               value={customUrl}
               onChangeText={setCustomUrl}
