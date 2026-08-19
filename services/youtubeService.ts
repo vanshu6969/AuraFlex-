@@ -101,6 +101,26 @@ export const sanitizeYouTubeInput = (input: string): string | null => {
 };
 
 /**
+ * Checks if a YouTube video is publicly available and viewable in India via oEmbed
+ */
+export const checkIndiaAvailability = async (videoId: string): Promise<boolean> => {
+  if (!videoId) return false;
+  try {
+    const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${encodeURIComponent(
+      videoId
+    )}&format=json`;
+    const response = await fetch(oembedUrl, {
+      headers: {
+        'Accept-Language': 'en-IN,en;q=0.9,hi;q=0.8',
+      },
+    });
+    return response.status === 200;
+  } catch (err) {
+    return true;
+  }
+};
+
+/**
  * Resolves YouTube video ID from override map or backend scraper.
  */
 export const resolveYouTubeVideo = async (

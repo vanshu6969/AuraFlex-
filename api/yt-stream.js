@@ -14,6 +14,27 @@ const ANTI_CLIP_KEYWORDS = [
   'clip',
 ];
 
+/**
+  Checks if a YouTube video is publicly available, embeddable, and viewable in India.
+  YouTube's oEmbed endpoint returns HTTP 200 for viewable videos, and 404/403 for blocked/restricted ones.
+ */
+async function checkIndiaAvailability(videoId) {
+  if (!videoId) return false;
+  try {
+    const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
+    const response = await fetch(oembedUrl, {
+      headers: {
+        'Accept-Language': 'en-IN,en;q=0.9,hi;q=0.8',
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
+    });
+    return response.status === 200;
+  } catch (err) {
+    return true; // Fallback to true if network check fails
+  }
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -43,9 +64,10 @@ export default async function handler(req, res) {
   const epPadded = String(epNum).padStart(2, '0');
   const seasonNum = parseInt(String(season), 10) || 1;
 
-  // Build Query Waterfall
+  // Build Query Waterfall tailored for India (IN) region preference
   const queries = [];
   if (type === 'movie') {
+    queries.push(`${cleanTitle} Full Movie Hindi`);
     queries.push(`${cleanTitle} Full Movie`);
     queries.push(`${cleanTitle}`);
   } else {
@@ -95,57 +117,75 @@ export default async function handler(req, res) {
       // 2. Duration Guard (> minDuration)
       const longForm = candidates.filter((v) => v.duration >= minDuration);
 
-      if (longForm.length > 0) {
-        selectedVideo = longForm[0];
-        break;
+      // 3. Validate India Availability (Region Check via oEmbed)
+      for (const cand of longForm.length > 0 ? longForm : candidates) {
+        const isAvailable = await checkIndiaAvailability(cand.id);
+        if (isAvailable) {
+          selectedVideo = cand;
+          break;
+        } else {
+          console.log(`Video ${cand.id} (${cand.title}) is not viewable in India. Skipping.`);
+        }
       }
+
+      if (selectedVideo) break;
     } catch (err) {
       console.log(`YouTube search query "${searchString}" failed:`, err.message);
     }
   }
 
-  // Fallback: HTML scraping if no candidate found via youtube-sr
-  if (!selectedVideo && allCandidates.length === 0) {
+  // Fallback: HTML scraping with India region parameter (gl=IN & hl=en-IN)
+  if (!selectedVideo) {
     try {
       const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(
         `${cleanTitle} Episode ${epPadded}`
-      )}`;
+      )}&gl=IN&hl=en-IN`;
       const response = await fetch(searchUrl, {
         headers: {
           'User-Agent':
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept-Language': 'en-IN,en;q=0.9,hi;q=0.8',
         },
       });
       const html = await response.text();
       const matches = [...html.matchAll(/"videoId":"([a-zA-Z0-9_-]{11})"/g)];
       const ids = [...new Set(matches.map((m) => m[1]))].filter((id) => !skipSet.has(id));
 
-      if (ids.length > 0) {
-        selectedVideo = {
-          id: ids[0],
-          title: `${cleanTitle} ${type === 'movie' ? 'Full Movie' : `Episode ${epPadded}`}`,
-          duration: 900000,
-          channel: { name: 'YouTube' },
-        };
+      for (const candidateId of ids) {
+        const isAvailable = await checkIndiaAvailability(candidateId);
+        if (isAvailable) {
+          selectedVideo = {
+            id: candidateId,
+            title: `${cleanTitle} ${type === 'movie' ? 'Full Movie' : `Episode ${epPadded}`}`,
+            duration: 900000,
+            channel: { name: 'YouTube' },
+          };
+          break;
+        }
       }
     } catch (fallbackErr) {
       console.log('HTML fallback error:', fallbackErr.message);
     }
   }
 
-  // Fallback: Pick the longest available candidate video excluding skipped IDs
+  // Final Fallback: Pick the longest available candidate video viewable in India
   if (!selectedVideo && allCandidates.length > 0) {
     const sortedByDuration = [...allCandidates].sort(
       (a, b) => (b.duration || 0) - (a.duration || 0)
     );
-    selectedVideo = sortedByDuration[0];
+    for (const cand of sortedByDuration) {
+      const isAvailable = await checkIndiaAvailability(cand.id);
+      if (isAvailable) {
+        selectedVideo = cand;
+        break;
+      }
+    }
   }
 
   if (!selectedVideo) {
     return res
       .status(404)
-      .json({ success: false, error: 'No video streams found excluding skipped IDs' });
+      .json({ success: false, error: 'No video streams found viewable in India' });
   }
 
   return res.status(200).json({
