@@ -82,10 +82,36 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
 
   useEffect(() => {
     if (activeServerId === 'custom_streamtape' && customOverride?.streamtape_url) {
+      let isMounted = true;
+      setResolvingStreamtape(true);
+      setStreamtapeMp4Url(null);
+
       const rawUrl = customOverride.streamtape_url.trim();
-      const proxyUrl = `/api/streamtape?url=${encodeURIComponent(rawUrl)}`;
-      setStreamtapeMp4Url(proxyUrl);
-      setResolvingStreamtape(false);
+      const match = String(rawUrl).match(/(?:\/e\/|\/v\/|file=)([a-zA-Z0-9_-]+)/);
+      const fileId = match ? match[1] : rawUrl;
+
+      const resolveStream = async () => {
+        try {
+          const res = await fetch(`/api/streamtape?file=${encodeURIComponent(fileId)}&json=1`);
+          const data = await res.json();
+          if (data.success && data.streamUrl && isMounted) {
+            setStreamtapeMp4Url(data.streamUrl);
+            setResolvingStreamtape(false);
+            return;
+          }
+        } catch (e) {}
+
+        if (isMounted) {
+          setStreamtapeMp4Url(`/api/streamtape?url=${encodeURIComponent(rawUrl)}`);
+          setResolvingStreamtape(false);
+        }
+      };
+
+      resolveStream();
+
+      return () => {
+        isMounted = false;
+      };
     } else {
       setStreamtapeMp4Url(null);
       setResolvingStreamtape(false);
