@@ -335,6 +335,34 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
   };
 
 
+  const handleDownloadPress = () => {
+    if (!customOverride?.download_url) return;
+    let rawUrl = customOverride.download_url.trim();
+    if (!/^https?:\/\//i.test(rawUrl)) {
+      rawUrl = `https://${rawUrl}`;
+    }
+
+    try {
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof document !== 'undefined') {
+        showToast('Opening direct download link...', 'success');
+        const link = document.createElement('a');
+        link.href = rawUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        showToast('Opening direct download link...', 'success');
+        Linking.openURL(rawUrl).catch(() => {
+          showToast('Unable to open download link', 'error');
+        });
+      }
+    } catch (e) {
+      showToast('Error opening download link', 'error');
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Header Info */}
@@ -387,13 +415,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
 
         {customOverride?.download_url ? (
           <TouchableOpacity
-            onPress={() => {
-              if (Platform.OS === 'web' && typeof window !== 'undefined') {
-                window.open(customOverride.download_url!, '_blank');
-              } else {
-                Linking.openURL(customOverride.download_url!);
-              }
-            }}
+            onPress={handleDownloadPress}
             style={styles.emeraldDownloadBtn}
             activeOpacity={0.8}
           >
@@ -404,6 +426,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
           </TouchableOpacity>
         ) : null}
       </View>
+
 
 
 
