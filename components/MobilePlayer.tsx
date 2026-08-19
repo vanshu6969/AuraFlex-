@@ -81,58 +81,10 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
 
   useEffect(() => {
     if (activeServerId === 'custom_streamtape' && customOverride?.streamtape_url) {
-      let isMounted = true;
-      setResolvingStreamtape(true);
-      setStreamtapeMp4Url(null);
-
-      const rawUrl = customOverride.streamtape_url;
-      const match = String(rawUrl).match(/(?:\/e\/|\/v\/|file=)([a-zA-Z0-9_-]+)/);
-      const fileId = match ? match[1] : rawUrl.trim();
-
-      const resolveStream = async () => {
-        try {
-          const res = await fetch(`/api/streamtape?file=${encodeURIComponent(fileId)}`);
-          const data = await res.json();
-          if (data.success && data.streamUrl && isMounted) {
-            setStreamtapeMp4Url(data.streamUrl);
-            setResolvingStreamtape(false);
-            return;
-          }
-        } catch (e) {}
-
-        try {
-          const login = '3d3c20e1f2980d24f437';
-          const key = 'xeqQKo1OJBFk2OQ';
-          const ticketUrl = `https://api.streamtape.com/file/dlticket?file=${encodeURIComponent(fileId)}&login=${login}&key=${key}`;
-          const tRes = await fetch(ticketUrl);
-          const tData = await tRes.json();
-
-          if (tData.status === 200 && tData.result?.ticket) {
-            const waitTimeMs = ((tData.result.wait_time || 5) + 0.5) * 1000;
-            await new Promise((r) => setTimeout(r, waitTimeMs));
-
-            const dlUrl = `https://api.streamtape.com/file/dl?file=${encodeURIComponent(fileId)}&ticket=${encodeURIComponent(tData.result.ticket)}&login=${login}&key=${key}`;
-            const dlRes = await fetch(dlUrl);
-            const dlData = await dlRes.json();
-
-            if (dlData.status === 200 && dlData.result?.url && isMounted) {
-              setStreamtapeMp4Url(dlData.result.url);
-              setResolvingStreamtape(false);
-              return;
-            }
-          }
-        } catch (e) {}
-
-        if (isMounted) {
-          setResolvingStreamtape(false);
-        }
-      };
-
-      resolveStream();
-
-      return () => {
-        isMounted = false;
-      };
+      const rawUrl = customOverride.streamtape_url.trim();
+      const proxyUrl = `/api/streamtape?url=${encodeURIComponent(rawUrl)}`;
+      setStreamtapeMp4Url(proxyUrl);
+      setResolvingStreamtape(false);
     } else {
       setStreamtapeMp4Url(null);
       setResolvingStreamtape(false);
@@ -161,7 +113,11 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
         badge: 'StreamTape',
         getUrl: () => {
           let url = (customOverride.streamtape_url || '').trim();
-          return `/api/streamtape?url=${encodeURIComponent(url)}`;
+          if (url && !/^https?:\/\//i.test(url)) {
+            url = `https://${url}`;
+          }
+          url = url.replace(/\/v\//i, '/e/');
+          return url.replace(/streamtape\.com/i, 'streamtape.to');
         },
       }
     : null;
