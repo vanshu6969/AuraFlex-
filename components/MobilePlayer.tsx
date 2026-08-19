@@ -119,8 +119,8 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
   const streamtapeServerObj: EmbedServer | null = customOverride?.streamtape_url
     ? {
         id: 'custom_streamtape',
-        name: 'StreamTape',
-        badge: 'StreamTape',
+        name: 'Aura V1',
+        badge: 'FAST',
         getUrl: () => {
           let url = (customOverride.streamtape_url || '').trim();
           if (url && !/^https?:\/\//i.test(url)) {
@@ -141,7 +141,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
     : EMBED_SERVERS.filter((s) => s.id !== 'nontongo' && s.id !== 'anime');
 
   const overrideServers = [customServerObj, streamtapeServerObj].filter(Boolean) as EmbedServer[];
-  const availableServers = overrideServers.length ? [...overrideServers, ...baseServers] : baseServers;
+  const availableServers = overrideServers.length ? overrideServers : baseServers;
 
 
 
@@ -529,7 +529,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
                   <View style={styles.loadingOverlay}>
                     <ActivityIndicator size="large" color="#10b981" />
                     <Text style={[styles.loadingText, { color: '#10b981', fontWeight: '800', marginTop: 8 }]}>
-                      Connecting to StreamTape Server #2 HD Stream...
+                      Connecting to Aura V1 HD Stream...
                     </Text>
                     <Text style={{ color: '#9ca3af', fontSize: 11, textAlign: 'center', paddingHorizontal: 20 }}>
                       Resolving direct high-speed 1080p stream (Bypassing ISP restrictions)...
