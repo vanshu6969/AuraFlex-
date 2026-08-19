@@ -56,17 +56,15 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
   const isSeries = media.media_type === 'tv' || (media.media_type === 'anime' && (media.episodes_count || 0) > 1);
 
   const availableServers = isPunjabi
-    ? EMBED_SERVERS.filter((s) => s.id === 'flmu' || s.id === 'youtube')
+    ? EMBED_SERVERS.filter((s) => s.id === 'videasy' || s.id === 'embedmaster' || s.id === 'flmu' || s.id === 'youtube')
     : isKdrama
-    ? EMBED_SERVERS.filter((s) => s.id === 'nontongo' || s.id === 'youtube')
+    ? EMBED_SERVERS.filter((s) => s.id === 'videasy' || s.id === 'nontongo' || s.id === 'youtube')
     : isAnime
-    ? EMBED_SERVERS.filter((s) => s.id === 'anime')
+    ? EMBED_SERVERS.filter((s) => s.id === 'anime' || s.id === 'videasy')
     : EMBED_SERVERS.filter((s) => s.id !== 'nontongo' && s.id !== 'anime');
 
+  const [activeServerId, setActiveServerId] = useState(() => 'videasy');
 
-  const [activeServerId, setActiveServerId] = useState(() =>
-    isPunjabi ? 'flmu' : isKdrama ? 'nontongo' : isAnime ? 'anime' : EMBED_SERVERS[0].id
-  );
 
   const [season, setSeason] = useState(initialSeason);
   const [episode, setEpisode] = useState(initialEpisode);
