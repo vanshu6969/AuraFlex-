@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import * as Updates from 'expo-updates';
 
-import { AuthModal } from '../components/AuthModal';
+import { AuraAuthModal, AuraAuthView } from '../components/AuraAuthModal';
 import { DisclaimerModal } from '../components/DisclaimerModal';
 import { CommandSearch } from '../components/CommandSearch';
 import { ToastNotification } from '../components/ToastNotification';
@@ -48,6 +48,7 @@ function RootContent() {
   useAntiNewTab();
   useAutoUpdate();
   const [authVisible, setAuthVisible] = useState(false);
+  const [initialAuthView, setInitialAuthView] = useState<AuraAuthView>('SIGN_IN');
   const [commandSearchOpen, setCommandSearchOpen] = useState(false);
   const { colors, isLight } = useTheme();
 
@@ -71,6 +72,16 @@ function RootContent() {
     };
   }, []);
 
+  const handleOpenAuth = async () => {
+    const { data } = await supabase.auth.getSession();
+    if (data.session?.user) {
+      setInitialAuthView('ACCOUNT');
+    } else {
+      setInitialAuthView('SIGN_IN');
+    }
+    setAuthVisible(true);
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <StatusBar style={isLight ? 'dark' : 'light'} />
@@ -90,7 +101,7 @@ function RootContent() {
               <Ionicons name="search" size={18} color="#ffffff" />
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => router.push('/more')} activeOpacity={0.7} style={styles.headerIconButton}>
+            <TouchableOpacity onPress={handleOpenAuth} activeOpacity={0.7} style={styles.headerIconButton}>
               <Ionicons name="person-circle-outline" size={22} color="#ffffff" />
             </TouchableOpacity>
           </View>
@@ -103,12 +114,13 @@ function RootContent() {
       </Stack>
 
       <CommandSearch isOpen={commandSearchOpen} onClose={() => setCommandSearchOpen(false)} />
-      <AuthModal visible={authVisible} onClose={() => setAuthVisible(false)} />
+      <AuraAuthModal visible={authVisible} onClose={() => setAuthVisible(false)} initialView={initialAuthView} />
       <DisclaimerModal />
       <ToastNotification />
     </View>
   );
 }
+
 
 
 export default function RootLayout() {
