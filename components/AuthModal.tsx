@@ -68,8 +68,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
       } else if (mode === 'forgot') {
         const redirectUrl =
           typeof window !== 'undefined'
-            ? `${window.location.origin}/settings/account`
-            : 'https://auraflexmovies.vercel.app/settings/account';
+            ? `${window.location.origin}/auth/update-password`
+            : 'https://auraflexmovies.vercel.app/auth/update-password';
+
 
         const resetPromise = supabase.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl });
         const timeoutPromise = new Promise<{ error: any }>((_, reject) =>
