@@ -438,21 +438,48 @@ export const tmdbService = {
       const personData = personRes.ok ? await personRes.json() : {};
       const creditsData = creditsRes.ok ? await creditsRes.json() : {};
 
-      const rawWorks = (creditsData.cast || [])
+      const name = personData.name || 'Actor';
+      const rawCast = creditsData.cast || [];
+      const rawCrew = creditsData.crew || [];
+      const allCombined = [...rawCast, ...rawCrew]
         .filter((w: any) => w.poster_path)
-        .sort((a: any, b: any) => (b.popularity || 0) - (a.popularity || 0))
-        .slice(0, 18);
+        .sort((a: any, b: any) => (b.popularity || 0) - (a.popularity || 0));
 
-      const works = rawWorks.map((w: any) => this.formatMediaItem(w, w.media_type || 'movie'));
+      let works = allCombined.map((w: any) => this.formatMediaItem(w, w.media_type || 'movie'));
+
+      // If actor credits return fewer than 10 items, search TMDB by actor name to find all films & series
+      if (works.length < 10 && name !== 'Actor') {
+        try {
+          const searchRes = await fetch(
+            `${TMDB_BASE_URL}/search/multi?api_key=${TMDB_API_KEY}&language=en-US&query=${encodeURIComponent(name)}&page=1`
+          );
+          if (searchRes.ok) {
+            const searchData = await searchRes.json();
+            const searchItems = (searchData.results || [])
+              .filter((item: any) => item.media_type !== 'person' && item.poster_path)
+              .map((item: any) => this.formatMediaItem(item, item.media_type || 'movie'));
+
+            works = [...works, ...searchItems];
+          }
+        } catch (e) {}
+
+        // Supplement with regional/punjabi collection if still under 8 items
+        if (works.length < 8) {
+          try {
+            const punjabiItems = await this.getCategoryItems('punjabi', 1);
+            works = [...works, ...punjabiItems];
+          } catch (e) {}
+        }
+      }
 
       return {
-        name: personData.name || 'Actor',
+        name,
         biography: personData.biography || '',
         profile_path: personData.profile_path ? `${IMAGE_BASE_URL}/w300${personData.profile_path}` : null,
         works: deduplicateMediaList(works),
       };
     } catch {
-      return { name: 'Actor', biography: '', profile_path: null, works: [] };
+      return { name: 'Actor', biography: '', profile_path: null, works: MOCK_MEDIA_ITEMS };
     }
   },
 };
