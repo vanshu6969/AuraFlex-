@@ -431,29 +431,32 @@ export const tmdbService = {
     personId: number
   ): Promise<{ name: string; biography: string; profile_path: string | null; works: MediaItem[] }> {
     try {
-      const personUrl = `${TMDB_BASE_URL}/person/${personId}?api_key=${TMDB_API_KEY}&language=en-US`;
-      const creditsUrl = `${TMDB_BASE_URL}/person/${personId}/combined_credits?api_key=${TMDB_API_KEY}&language=en-US`;
+      const url = `${TMDB_BASE_URL}/person/${personId}?api_key=${TMDB_API_KEY}&language=en-US&append_to_response=combined_credits`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Failed to fetch person credits');
+      const data = await res.json();
 
-      const [personRes, creditsRes] = await Promise.all([fetch(personUrl), fetch(creditsUrl)]);
-      const personData = personRes.ok ? await personRes.json() : {};
-      const creditsData = creditsRes.ok ? await creditsRes.json() : {};
+      const name = data.name || 'Actor';
+      const biography = data.biography || '';
+      const profile_path = data.profile_path ? `${IMAGE_BASE_URL}/w300${data.profile_path}` : null;
 
-      const name = personData.name || 'Actor';
-      const rawCast = creditsData.cast || [];
-      const rawCrew = creditsData.crew || [];
+      const rawCast = data.combined_credits?.cast || [];
+      const rawCrew = data.combined_credits?.crew || [];
+      const combined = [...rawCast, ...rawCrew];
 
-      // Strictly include ONLY items from actor's actual cast and crew credits
-      const allCombined = [...rawCast, ...rawCrew]
-        .filter((w: any) => w.poster_path)
-        .sort((a: any, b: any) => (b.popularity || 0) - (a.popularity || 0));
+      // Extract all combined entries, deduplicate by ID, and sort descending by popularity
+      const formattedWorks = combined
+        .filter((item: any) => item && (item.title || item.name))
+        .map((item: any) => this.formatMediaItem(item, item.media_type || 'movie'))
+        .sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0));
 
-      const works = allCombined.map((w: any) => this.formatMediaItem(w, w.media_type || 'movie'));
+      const works = deduplicateMediaList(formattedWorks);
 
       return {
         name,
-        biography: personData.biography || '',
-        profile_path: personData.profile_path ? `${IMAGE_BASE_URL}/w300${personData.profile_path}` : null,
-        works: deduplicateMediaList(works),
+        biography,
+        profile_path,
+        works,
       };
     } catch {
       return { name: 'Actor', biography: '', profile_path: null, works: [] };
