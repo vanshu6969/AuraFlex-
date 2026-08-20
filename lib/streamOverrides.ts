@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { submitToIndexNow } from './indexnow';
 
 export interface StreamOverrideRecord {
   tmdb_id: string;
@@ -68,6 +69,13 @@ export const streamOverrideService = {
       if (error) {
         return { success: false, error: error.message };
       }
+
+      // Non-blocking automatic IndexNow trigger for instant Google/Bing/Yandex crawling
+      submitToIndexNow({
+        tmdbId: record.tmdb_id,
+        type: record.media_type,
+      }).catch(() => {});
+
       return { success: true };
     } catch (e: any) {
       return { success: false, error: e.message || 'Unknown network error' };
