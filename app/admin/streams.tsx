@@ -36,11 +36,48 @@ export default function AdminStreamOverridesScreen() {
   const [backupUrl, setBackupUrl] = useState('');
   const [streamtapeUrl, setStreamtapeUrl] = useState('');
   const [downloadUrl, setDownloadUrl] = useState('');
+  const [autoBroadcastTg, setAutoBroadcastTg] = useState(true);
+
+  // Telegram Broadcast states
+  const [tgSearchQuery, setTgSearchQuery] = useState('');
+  const [tgPublishing, setTgPublishing] = useState(false);
 
   const [lookupLoading, setLookupLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [overrides, setOverrides] = useState<StreamOverrideRecord[]>([]);
   const [loadingOverrides, setLoadingOverrides] = useState(true);
+
+  const handlePublishToTelegram = async (overrideTitle?: string, overrideTmdbId?: string) => {
+    const target = overrideTmdbId || tgSearchQuery.trim() || tmdbId.trim();
+    if (!target) {
+      showToast('Enter a Movie Name or TMDB ID to broadcast', 'info');
+      return;
+    }
+    setTgPublishing(true);
+    try {
+      const res = await fetch('/api/telegram-broadcast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: target,
+          tmdbId: target,
+          type: mediaType,
+          title: overrideTitle || title || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`Published "${data.title || target}" to Telegram @AuraFlexmovies!`, 'success');
+        setTgSearchQuery('');
+      } else {
+        showToast(`Telegram Notice: ${data.error || 'Failed to broadcast'}`, 'error');
+      }
+    } catch (e: any) {
+      showToast(`Network Error: ${e.message}`, 'error');
+    } finally {
+      setTgPublishing(false);
+    }
+  };
 
   // Check logged in user session on mount
   useEffect(() => {
@@ -122,9 +159,11 @@ export default function AdminStreamOverridesScreen() {
     }
 
     setSaving(true);
+    const saveTitle = title.trim();
+    const saveTmdbId = tmdbId.trim();
     const res = await streamOverrideService.upsertOverride({
-      tmdb_id: tmdbId.trim(),
-      title: title.trim(),
+      tmdb_id: saveTmdbId,
+      title: saveTitle,
       media_type: mediaType,
       custom_stream_url: customUrl.trim() || null,
       backup_stream_url: backupUrl.trim() || null,
@@ -135,6 +174,9 @@ export default function AdminStreamOverridesScreen() {
 
     if (res.success) {
       showToast('Stream Override Saved Successfully!', 'success');
+      if (autoBroadcastTg) {
+        handlePublishToTelegram(saveTitle, saveTmdbId);
+      }
       setTmdbId('');
       setTitle('');
       setCustomUrl('');
@@ -350,6 +392,21 @@ export default function AdminStreamOverridesScreen() {
             />
           </View>
 
+          {/* Auto Broadcast Toggle */}
+          <TouchableOpacity
+            onPress={() => setAutoBroadcastTg(!autoBroadcastTg)}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}
+          >
+            <Ionicons
+              name={autoBroadcastTg ? 'checkbox' : 'square-outline'}
+              size={20}
+              color={autoBroadcastTg ? '#3b82f6' : '#6b7280'}
+            />
+            <Text style={{ color: '#d1d5db', fontSize: 13, fontWeight: '600' }}>
+              Auto-Broadcast release to Telegram Channel (@AuraFlexmovies) on save
+            </Text>
+          </TouchableOpacity>
+
           {/* Submit Save Button */}
           <TouchableOpacity
             onPress={handleSave}
@@ -365,6 +422,44 @@ export default function AdminStreamOverridesScreen() {
               </>
             )}
           </TouchableOpacity>
+        </View>
+
+        {/* --- Telegram Channel Manual Publisher Card --- */}
+        <View style={[styles.formCard, { borderColor: 'rgba(59, 130, 246, 0.4)' }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Ionicons name="paper-plane" size={20} color="#0088cc" />
+            <Text style={styles.formSectionTitle}>Telegram Channel Manual Publisher</Text>
+          </View>
+          <Text style={styles.formSubtitle}>
+            Enter any Movie Name or TMDB ID below to automatically fetch metadata, poster, and broadcast the post to @AuraFlexmovies.
+          </Text>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Movie Name or TMDB ID</Text>
+            <View style={styles.rowInput}>
+              <TextInput
+                value={tgSearchQuery}
+                onChangeText={setTgSearchQuery}
+                placeholder="e.g. Shera or 1665724 or Kanneda"
+                placeholderTextColor="#6b7280"
+                style={[styles.textInput, { flex: 1 }]}
+              />
+              <TouchableOpacity
+                onPress={() => handlePublishToTelegram()}
+                disabled={tgPublishing}
+                style={[styles.lookupBtn, { backgroundColor: '#0088cc' }]}
+              >
+                {tgPublishing ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <>
+                    <Ionicons name="paper-plane-outline" size={16} color="#ffffff" />
+                    <Text style={styles.lookupBtnText}>Publish to TG</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
 
         {/* --- Active Overrides List Section --- */}
@@ -394,6 +489,12 @@ export default function AdminStreamOverridesScreen() {
                     </View>
 
                     <View style={styles.actionRowBtn}>
+                      <TouchableOpacity
+                        onPress={() => handlePublishToTelegram(item.title, item.tmdb_id)}
+                        style={[styles.editBtn, { backgroundColor: 'rgba(0, 136, 204, 0.2)' }]}
+                      >
+                        <Ionicons name="paper-plane-outline" size={16} color="#0088cc" />
+                      </TouchableOpacity>
                       <TouchableOpacity onPress={() => handleEdit(item)} style={styles.editBtn}>
                         <Ionicons name="create-outline" size={16} color="#3b82f6" />
                       </TouchableOpacity>
