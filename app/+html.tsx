@@ -14,14 +14,14 @@ export default function HTML({ children }: PropsWithChildren) {
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
 
         {/* Primary SEO Meta Tags */}
-        <title>AuraFlex - Stream Movies, TV Series & Dramas Online</title>
+        <title>AuraFlex Movies - Watch & Download Free HD Movies and Series</title>
         <meta
           name="description"
-          content="Watch and download latest Bollywood, Hollywood, and Punjabi movies in 1080p Full HD. Fast streaming, zero ads, and direct 1-click downloads on AuraFlex."
+          content="AuraFlex Movies is your official hub to stream and download full Bollywood, Hollywood, and regional movies in 1080p Full HD with zero popup ads."
         />
         <meta
           name="keywords"
-          content="auraflex, auraflex movies, stream movies online, watch dramas online, pakistani dramas free, punjabi web series, free movie streaming, vega cinema"
+          content="AuraFlex Movies, AuraFlex, AuraFlex movie streaming, AuraFlex movies download, watch movies free online"
         />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href="https://auraflexmovies.vercel.app/" />
@@ -33,23 +33,23 @@ export default function HTML({ children }: PropsWithChildren) {
         {/* Open Graph / Facebook */}
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://auraflexmovies.vercel.app/" />
-        <meta property="og:title" content="AuraFlex - Stream Movies, TV Series & Dramas Online" />
+        <meta property="og:title" content="AuraFlex Movies - Watch & Download Free HD Movies and Series" />
         <meta
           property="og:description"
-          content="Watch and download latest Bollywood, Hollywood, and Punjabi movies in 1080p Full HD. Fast streaming, zero ads, and direct 1-click downloads on AuraFlex."
+          content="AuraFlex Movies is your official hub to stream and download full Bollywood, Hollywood, and regional movies in 1080p Full HD with zero popup ads."
         />
-        <meta property="og:image" content="https://auraflexmovies.vercel.app/assets/icon.png" />
-        <meta property="og:site_name" content="AuraFlex" />
+        <meta property="og:image" content="https://auraflexmovies.vercel.app/icon.png" />
+        <meta property="og:site_name" content="AuraFlex Movies" />
 
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:url" content="https://auraflexmovies.vercel.app/" />
-        <meta name="twitter:title" content="AuraFlex - Stream Movies, TV Series & Dramas Online" />
+        <meta name="twitter:title" content="AuraFlex Movies - Watch & Download Free HD Movies and Series" />
         <meta
           name="twitter:description"
-          content="Watch and download latest Bollywood, Hollywood, and Punjabi movies in 1080p Full HD. Fast streaming, zero ads, and direct 1-click downloads on AuraFlex."
+          content="AuraFlex Movies is your official hub to stream and download full Bollywood, Hollywood, and regional movies in 1080p Full HD with zero popup ads."
         />
-        <meta name="twitter:image" content="https://auraflexmovies.vercel.app/assets/icon.png" />
+        <meta name="twitter:image" content="https://auraflexmovies.vercel.app/icon.png" />
 
         {/* Schema.org WebSite JSON-LD for Google Sitelinks SearchBox */}
         <script
@@ -59,7 +59,7 @@ export default function HTML({ children }: PropsWithChildren) {
               '@context': 'https://schema.org',
               '@type': 'WebSite',
               name: 'AuraFlex Movies',
-              alternateName: ['AuraFlex', 'Vega Cinema', 'AuraFlex Cinema'],
+              alternateName: ['AuraFlex', 'AuraFlexMovies'],
               url: 'https://auraflexmovies.vercel.app',
               potentialAction: {
                 '@type': 'SearchAction',

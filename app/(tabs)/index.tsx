@@ -67,6 +67,13 @@ export default function HomeScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      {/* Homepage SEO Header */}
+      <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 4 }}>
+        <Text style={{ fontSize: 22, fontWeight: '800', color: '#ffffff' }}>
+          Welcome to <Text style={{ color: '#e50914' }}>AuraFlex Movies</Text>
+        </Text>
+      </View>
+
       {/* Featured Hero Banner */}
       {(trending.length > 0 || featured) && (
         <MobileHeroBanner items={trending.length > 0 ? trending : (featured ? [featured] : [])} />

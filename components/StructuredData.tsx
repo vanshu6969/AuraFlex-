@@ -15,9 +15,9 @@ interface StructuredDataProps {
 
 export const StructuredData: React.FC<StructuredDataProps> = ({
   type = 'website',
-  title = 'AuraFlex - Stream Movies, TV Series & Dramas Online',
+  title = 'AuraFlex Movies - Watch & Download Free HD Movies and Series',
   description,
-  image = 'https://auraflexmovies.vercel.app/assets/icon.png',
+  image = 'https://auraflexmovies.vercel.app/icon.png',
   url = 'https://auraflexmovies.vercel.app',
   year = '2026',
   genres = ['Action', 'Drama'],
@@ -27,15 +27,15 @@ export const StructuredData: React.FC<StructuredDataProps> = ({
 }) => {
   const formattedTitle =
     type === 'movie' || type === 'tv' || type === 'anime'
-      ? `${title} (${year}) ${language} ${quality} Watch Online & 1-Click Download Free - AuraFlex`
-      : title;
+      ? `${title} (${year}) ${language} ${quality} Watch Online & 1-Click Download Free | AuraFlex Movies`
+      : title.includes('AuraFlex Movies') ? title : `${title} | AuraFlex Movies`;
 
   const defaultGlobalDesc =
-    'Watch and download latest Bollywood, Hollywood, and Punjabi movies in 1080p Full HD. Fast streaming, zero ads, and direct 1-click downloads on AuraFlex.';
+    'AuraFlex Movies is your official hub to stream and download full Bollywood, Hollywood, and regional movies in 1080p Full HD with zero popup ads.';
 
   const formattedDescription =
     type === 'movie' || type === 'tv' || type === 'anime'
-      ? `Watch ${title} (${year}) full movie online in 1080p HD on AuraFlex. Stream in ${language} audio with zero popups or get fast direct 1-click high-speed download links.`
+      ? `Watch ${title} (${year}) full movie online in 1080p HD on AuraFlex Movies. Stream in ${language} audio with zero popups or get fast direct 1-click high-speed download links.`
       : description || defaultGlobalDesc;
 
   useEffect(() => {
@@ -64,6 +64,7 @@ export const StructuredData: React.FC<StructuredDataProps> = ({
     setMeta('og:description', formattedDescription);
     setMeta('og:image', image);
     setMeta('og:url', url);
+    setMeta('og:site_name', 'AuraFlex Movies');
     setMeta('og:type', type === 'movie' || type === 'tv' ? 'video.movie' : 'website');
     if (directUrl) {
       setMeta('og:video', directUrl);
@@ -81,7 +82,7 @@ export const StructuredData: React.FC<StructuredDataProps> = ({
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: 'AuraFlex Movies',
-    alternateName: ['AuraFlex', 'Vega Cinema', 'AuraFlex Cinema'],
+    alternateName: ['AuraFlex', 'AuraFlexMovies'],
     url: 'https://auraflexmovies.vercel.app',
     potentialAction: {
       '@type': 'SearchAction',
