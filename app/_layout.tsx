@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Image, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Analytics } from '@vercel/analytics/dist/react/index.js';
+import { SpeedInsights } from '@vercel/speed-insights/dist/react/index.js';
 
 import * as Updates from 'expo-updates';
 
@@ -117,6 +119,12 @@ function RootContent() {
       <AuraAuthModal visible={authVisible} onClose={() => setAuthVisible(false)} initialView={initialAuthView} />
       <DisclaimerModal />
       <ToastNotification />
+      {Platform.OS === 'web' && (
+        <>
+          <Analytics />
+          <SpeedInsights />
+        </>
+      )}
     </View>
   );
 }
