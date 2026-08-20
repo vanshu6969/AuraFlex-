@@ -16,7 +16,7 @@ interface StructuredDataProps {
 export const StructuredData: React.FC<StructuredDataProps> = ({
   type = 'website',
   title = 'AuraFlex - Stream Movies, TV Series & Dramas Online',
-  description = 'Stream high-definition movies, TV shows, Pakistani dramas, Punjabi web series, and anime online free on AuraFlex.',
+  description,
   image = 'https://auraflexmovies.vercel.app/assets/icon.png',
   url = 'https://auraflexmovies.vercel.app',
   year = '2026',
@@ -29,6 +29,14 @@ export const StructuredData: React.FC<StructuredDataProps> = ({
     type === 'movie' || type === 'tv' || type === 'anime'
       ? `${title} (${year}) ${language} ${quality} Watch Online & 1-Click Download Free - AuraFlex`
       : title;
+
+  const defaultGlobalDesc =
+    'Watch and download latest Bollywood, Hollywood, and Punjabi movies in 1080p Full HD. Fast streaming, zero ads, and direct 1-click downloads on AuraFlex.';
+
+  const formattedDescription =
+    type === 'movie' || type === 'tv' || type === 'anime'
+      ? `Watch ${title} (${year}) full movie online in 1080p HD on AuraFlex. Stream in ${language} audio with zero popups or get fast direct 1-click high-speed download links.`
+      : description || defaultGlobalDesc;
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -49,11 +57,11 @@ export const StructuredData: React.FC<StructuredDataProps> = ({
     };
 
     document.title = formattedTitle;
-    setMeta('description', description, true);
+    setMeta('description', formattedDescription, true);
 
     // OpenGraph Protocol
     setMeta('og:title', formattedTitle);
-    setMeta('og:description', description);
+    setMeta('og:description', formattedDescription);
     setMeta('og:image', image);
     setMeta('og:url', url);
     setMeta('og:type', type === 'movie' || type === 'tv' ? 'video.movie' : 'website');
@@ -65,9 +73,9 @@ export const StructuredData: React.FC<StructuredDataProps> = ({
     // Twitter Card Tags for Telegram & WhatsApp previews
     setMeta('twitter:card', 'summary_large_image', true);
     setMeta('twitter:title', formattedTitle, true);
-    setMeta('twitter:description', description, true);
+    setMeta('twitter:description', formattedDescription, true);
     setMeta('twitter:image', image, true);
-  }, [formattedTitle, description, image, url, type, directUrl]);
+  }, [formattedTitle, formattedDescription, image, url, type, directUrl]);
 
   const websiteSchema = {
     '@context': 'https://schema.org',

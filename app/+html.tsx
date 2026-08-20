@@ -17,7 +17,7 @@ export default function HTML({ children }: PropsWithChildren) {
         <title>AuraFlex - Stream Movies, TV Series & Dramas Online</title>
         <meta
           name="description"
-          content="Stream high-definition movies, TV shows, Pakistani dramas, Punjabi web series, and anime online free on AuraFlex. Fast multi-server video player."
+          content="Watch and download latest Bollywood, Hollywood, and Punjabi movies in 1080p Full HD. Fast streaming, zero ads, and direct 1-click downloads on AuraFlex."
         />
         <meta
           name="keywords"
@@ -36,7 +36,7 @@ export default function HTML({ children }: PropsWithChildren) {
         <meta property="og:title" content="AuraFlex - Stream Movies, TV Series & Dramas Online" />
         <meta
           property="og:description"
-          content="Stream high-definition movies, TV shows, Pakistani dramas, Punjabi web series, and anime online free on AuraFlex."
+          content="Watch and download latest Bollywood, Hollywood, and Punjabi movies in 1080p Full HD. Fast streaming, zero ads, and direct 1-click downloads on AuraFlex."
         />
         <meta property="og:image" content="https://auraflexmovies.vercel.app/assets/icon.png" />
         <meta property="og:site_name" content="AuraFlex" />
@@ -47,7 +47,7 @@ export default function HTML({ children }: PropsWithChildren) {
         <meta name="twitter:title" content="AuraFlex - Stream Movies, TV Series & Dramas Online" />
         <meta
           name="twitter:description"
-          content="Stream high-definition movies, TV shows, Pakistani dramas, Punjabi web series, and anime online free on AuraFlex."
+          content="Watch and download latest Bollywood, Hollywood, and Punjabi movies in 1080p Full HD. Fast streaming, zero ads, and direct 1-click downloads on AuraFlex."
         />
         <meta name="twitter:image" content="https://auraflexmovies.vercel.app/assets/icon.png" />
 
