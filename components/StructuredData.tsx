@@ -1,11 +1,16 @@
 import React, { useEffect } from 'react';
 
 interface StructuredDataProps {
-  type?: 'website' | 'movie' | 'tv';
+  type?: 'website' | 'movie' | 'tv' | 'anime';
   title?: string;
   description?: string;
   image?: string;
   url?: string;
+  year?: string | number;
+  genres?: string[];
+  quality?: string;
+  language?: string;
+  directUrl?: string;
 }
 
 export const StructuredData: React.FC<StructuredDataProps> = ({
@@ -14,7 +19,17 @@ export const StructuredData: React.FC<StructuredDataProps> = ({
   description = 'Stream high-definition movies, TV shows, Pakistani dramas, Punjabi web series, and anime online free on AuraFlex.',
   image = 'https://auraflexmovies.vercel.app/assets/icon.png',
   url = 'https://auraflexmovies.vercel.app',
+  year = '2026',
+  genres = ['Action', 'Drama'],
+  quality = '1080p Full HD',
+  language = 'Hindi / Punjabi / English',
+  directUrl,
 }) => {
+  const formattedTitle =
+    type === 'movie' || type === 'tv' || type === 'anime'
+      ? `${title} (${year}) ${language} ${quality} Watch Online & 1-Click Download Free - AuraFlex`
+      : title;
+
   useEffect(() => {
     if (typeof document === 'undefined') return;
 
@@ -33,18 +48,26 @@ export const StructuredData: React.FC<StructuredDataProps> = ({
       element.setAttribute('content', content);
     };
 
-    document.title = title;
+    document.title = formattedTitle;
     setMeta('description', description, true);
-    setMeta('og:title', title);
+
+    // OpenGraph Protocol
+    setMeta('og:title', formattedTitle);
     setMeta('og:description', description);
     setMeta('og:image', image);
     setMeta('og:url', url);
     setMeta('og:type', type === 'movie' || type === 'tv' ? 'video.movie' : 'website');
+    if (directUrl) {
+      setMeta('og:video', directUrl);
+      setMeta('og:video:type', 'video/mp4');
+    }
+
+    // Twitter Card Tags for Telegram & WhatsApp previews
     setMeta('twitter:card', 'summary_large_image', true);
-    setMeta('twitter:title', title, true);
+    setMeta('twitter:title', formattedTitle, true);
     setMeta('twitter:description', description, true);
     setMeta('twitter:image', image, true);
-  }, [title, description, image, url, type]);
+  }, [formattedTitle, description, image, url, type, directUrl]);
 
   const websiteSchema = {
     '@context': 'https://schema.org',
@@ -60,18 +83,26 @@ export const StructuredData: React.FC<StructuredDataProps> = ({
   };
 
   const mediaSchema =
-    type === 'movie' || type === 'tv'
+    type === 'movie' || type === 'tv' || type === 'anime'
       ? {
           '@context': 'https://schema.org',
-          '@type': type === 'movie' ? 'Movie' : 'TVSeries',
+          '@type': type === 'tv' ? 'TVSeries' : 'Movie',
           name: title,
           description: description,
           image: image,
           url: url,
+          datePublished: `${year}-01-01`,
+          genre: genres,
+          videoQuality: quality,
+          inLanguage: language,
           provider: {
             '@type': 'Organization',
             name: 'AuraFlex',
             url: 'https://auraflexmovies.vercel.app',
+          },
+          potentialAction: {
+            '@type': 'WatchAction',
+            target: directUrl || url,
           },
         }
       : null;

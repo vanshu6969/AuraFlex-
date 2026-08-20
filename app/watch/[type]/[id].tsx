@@ -102,11 +102,15 @@ export default function WatchScreen() {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Schema.org Structured Data for Google Indexing */}
       <StructuredData
-        type={activeMedia.media_type === 'tv' ? 'tv' : 'movie'}
-        title={`Watch ${activeMedia.title} HD Free on AuraFlex`}
+        type={activeMedia.media_type === 'tv' ? 'tv' : activeMedia.media_type === 'anime' ? 'anime' : 'movie'}
+        title={activeMedia.title}
         description={activeMedia.overview || `Stream ${activeMedia.title} free in HD on AuraFlex.`}
         image={activeMedia.poster_path}
         url={`https://auraflexmovies.vercel.app/watch/${activeMedia.media_type || 'movie'}/${activeMedia.id}`}
+        year={activeMedia.first_air_date ? activeMedia.first_air_date.split('-')[0] : '2026'}
+        genres={activeMedia.genres}
+        quality={activeMedia.quality || '1080p Full HD'}
+        directUrl={`https://auraflexmovies.vercel.app/api/streamtape?file=${activeMedia.id}`}
       />
 
       {/* Top Back Navigation Bar */}
