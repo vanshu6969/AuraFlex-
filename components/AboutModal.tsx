@@ -18,6 +18,15 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  const handleOpenTelegram = () => {
+    const tgUrl = process.env.NEXT_PUBLIC_TELEGRAM_LINK || 'https://t.me/AuraFlexmovies';
+    if (typeof window !== 'undefined') {
+      window.open(tgUrl, '_blank');
+    } else {
+      Linking.openURL(tgUrl);
+    }
+  };
+
   return (
     <Modal visible={isOpen} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.backdrop}>
@@ -46,7 +55,51 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
             A modern high-performance streaming hub bringing you Movies, TV Shows, Asian Dramas, Punjabi Cinema, and Anime with multi-server playback.
           </Text>
 
-          {/* 4. Creator & Discord Credits Sub-Card */}
+          {/* 4. High-Converting Telegram Channel Community Card */}
+          <View style={styles.telegramCard}>
+            <View style={styles.telegramHeaderRow}>
+              <View style={styles.telegramIconCircle}>
+                <Ionicons name="paper-plane" size={20} color="#0088cc" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.telegramCardTitle}>Official Telegram Channel</Text>
+                <Text style={styles.telegramCardHandle}>@AuraFlexmovies</Text>
+              </View>
+            </View>
+
+            <View style={styles.benefitsList}>
+              <View style={styles.benefitRow}>
+                <Text style={styles.benefitEmoji}>⚡</Text>
+                <Text style={styles.benefitText}>Instant notifications when new 1080p HD prints drop</Text>
+              </View>
+
+              <View style={styles.benefitRow}>
+                <Text style={styles.benefitEmoji}>🎬</Text>
+                <Text style={styles.benefitText}>Direct request portal for missing movies & series</Text>
+              </View>
+
+              <View style={styles.benefitRow}>
+                <Text style={styles.benefitEmoji}>📥</Text>
+                <Text style={styles.benefitText}>Fast direct download links & mirror servers</Text>
+              </View>
+
+              <View style={styles.benefitRow}>
+                <Text style={styles.benefitEmoji}>🚫</Text>
+                <Text style={styles.benefitText}>100% ad-free & zero spam community</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={handleOpenTelegram}
+              style={styles.telegramCtaBtn}
+            >
+              <Ionicons name="paper-plane" size={15} color="#ffffff" />
+              <Text style={styles.telegramCtaText}>Join @AuraFlexmovies on Telegram</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* 5. Creator & Discord Credits Sub-Card */}
           <View style={styles.creditsSubCard}>
             <View style={styles.creditRow}>
               <Text style={styles.creditLabel}>Developed By</Text>
@@ -68,7 +121,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
             </View>
           </View>
 
-          {/* 5. Close Button */}
+          {/* 6. Close Button */}
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={onClose}
@@ -225,6 +278,80 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  telegramCard: {
+    width: '100%',
+    backgroundColor: 'rgba(0, 136, 204, 0.08)',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 9, 20, 0.4)',
+    padding: 14,
+    marginTop: 16,
+    gap: 10,
+    shadowColor: '#e50914',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  telegramHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  telegramIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0, 136, 204, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 136, 204, 0.4)',
+  },
+  telegramCardTitle: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  telegramCardHandle: {
+    color: '#0088cc',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  benefitsList: {
+    gap: 6,
+  },
+  benefitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  benefitEmoji: {
+    fontSize: 12,
+  },
+  benefitText: {
+    color: '#d1d5db',
+    fontSize: 11,
+    fontWeight: '500',
+    flex: 1,
+    lineHeight: 15,
+  },
+  telegramCtaBtn: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#0088cc',
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginTop: 4,
+  },
+  telegramCtaText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '800',
   },
   doneBtn: {
     width: '100%',
