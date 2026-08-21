@@ -12,9 +12,18 @@ interface ContinueWatchingCardProps {
 
 export const ContinueWatchingCard: React.FC<ContinueWatchingCardProps> = ({ item, onRemove }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const [imgError, setImgError] = useState(false);
+
   const media = item.media;
   const isSeries = media?.media_type && media.media_type !== 'movie';
   const mediaType = media?.media_type || 'movie';
+
+  // 1st Fallback: Episode Still -> 2nd: Backdrop -> 3rd: Poster
+  const stillUri =
+    (item as any).still_path ||
+    (item as any).episodeImage ||
+    media?.backdrop_path ||
+    media?.poster_path;
 
   // Calculate watched percentage (default to 65% if not set)
   let percent = 65;
@@ -46,11 +55,22 @@ export const ContinueWatchingCard: React.FC<ContinueWatchingCardProps> = ({ item
     >
       {/* Backdrop Image Container */}
       <View style={styles.imageBox}>
-        <Image
-          source={{ uri: media?.backdrop_path || media?.poster_path }}
-          style={styles.backdropImg}
-          resizeMode="cover"
-        />
+        {!imgError && stillUri ? (
+          <Image
+            source={{ uri: stillUri }}
+            onError={() => setImgError(true)}
+            style={styles.backdropImg}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.fallbackPlaceholderBox}>
+            <Ionicons name="film-outline" size={26} color="#e50914" />
+            <Text style={styles.fallbackTitleText} numberOfLines={1}>
+              {media?.title || 'AuraFlex Release'}
+            </Text>
+            <Text style={styles.fallbackBadgeText}>{episodeTagText}</Text>
+          </View>
+        )}
 
         {/* Dark Vignette Overlay */}
         <View style={styles.vignetteOverlay} />
@@ -220,5 +240,24 @@ const styles = StyleSheet.create({
     color: '#e50914',
     fontSize: 11,
     fontWeight: '800',
+  },
+  fallbackPlaceholderBox: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#1a1c24',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    gap: 4,
+  },
+  fallbackTitleText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  fallbackBadgeText: {
+    color: '#9ca3af',
+    fontSize: 10,
+    fontWeight: '600',
   },
 });

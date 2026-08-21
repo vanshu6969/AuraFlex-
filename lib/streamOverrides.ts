@@ -9,6 +9,7 @@ export interface StreamOverrideRecord {
   backup_stream_url?: string | null;
   streamtape_url?: string | null;
   download_url?: string | null;
+  youtube_url?: string | null;
   updated_at?: string;
 }
 
@@ -62,6 +63,7 @@ export const streamOverrideService = {
         backup_stream_url: record.backup_stream_url || null,
         streamtape_url: record.streamtape_url || null,
         download_url: record.download_url || null,
+        youtube_url: record.youtube_url || null,
         updated_at: new Date().toISOString(),
       };
 

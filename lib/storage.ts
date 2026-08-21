@@ -21,6 +21,19 @@ const notifyStorageChange = () => {
   listeners.forEach((fn) => fn());
 };
 
+const deduplicateWatchHistory = (items: WatchProgress[]): WatchProgress[] => {
+  const map = new Map<string, WatchProgress>();
+  for (const item of items) {
+    if (!item || item.mediaId === undefined || item.mediaId === null) continue;
+    const key = String(item.mediaId);
+    const existing = map.get(key);
+    if (!existing || (item.updatedAt || 0) > (existing.updatedAt || 0)) {
+      map.set(key, item);
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+};
+
 export const storageService = {
   // Watchlist functions
   async getWatchlist(): Promise<MediaItem[]> {
@@ -115,8 +128,10 @@ export const storageService = {
     return list.some((item) => String(item.id) === String(mediaId));
   },
 
-  // Continue Watching progress functions
+  // Continue Watching progress functions (1 entry per series/movie)
   async getContinueWatching(): Promise<WatchProgress[]> {
+    let results: WatchProgress[] = [];
+
     try {
       const { data: session } = await supabase.auth.getSession();
       const user = session?.session?.user;
@@ -129,7 +144,7 @@ export const storageService = {
           .order('updated_at', { ascending: false });
 
         if (!error && data && data.length > 0) {
-          return data.map((row) => {
+          results = data.map((row) => {
             const mediaObj = row.media_data as MediaItem;
             const isMovie = mediaObj?.media_type === 'movie';
             return {
@@ -142,22 +157,24 @@ export const storageService = {
               updatedAt: new Date(row.updated_at).getTime(),
             };
           });
+          return deduplicateWatchHistory(results);
         }
       }
     } catch {}
 
     try {
       const raw = await safeStorage.getItem(LOCAL_PROGRESS_KEY);
-      return raw ? JSON.parse(raw) : [];
+      if (raw) {
+        results = JSON.parse(raw);
+      }
     } catch {
-      return [];
+      results = [];
     }
+
+    return deduplicateWatchHistory(results);
   },
 
   async saveProgress(
-
-
-
     media: MediaItem,
     currentTime: number,
     duration: number,
@@ -177,15 +194,11 @@ export const storageService = {
     try {
       const raw = await safeStorage.getItem(LOCAL_PROGRESS_KEY);
       let list: WatchProgress[] = raw ? JSON.parse(raw) : [];
-      const idx = list.findIndex((item) => String(item.mediaId) === String(media.id));
+      // Remove any previous entry for this same show/movie
+      const filtered = list.filter((item) => String(item.mediaId) !== String(media.id));
+      filtered.unshift(progressItem);
 
-      if (idx !== -1) {
-        list[idx] = progressItem;
-      } else {
-        list.unshift(progressItem);
-      }
-
-      await safeStorage.setItem(LOCAL_PROGRESS_KEY, JSON.stringify(list));
+      await safeStorage.setItem(LOCAL_PROGRESS_KEY, JSON.stringify(filtered));
     } catch {}
 
     notifyStorageChange();
@@ -206,7 +219,7 @@ export const storageService = {
             episode: episode,
             updated_at: new Date().toISOString(),
           },
-          { onConflict: 'user_id,media_id,season,episode' }
+          { onConflict: 'user_id,media_id' }
         );
       }
     } catch {}

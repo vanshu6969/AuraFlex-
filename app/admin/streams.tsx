@@ -36,6 +36,7 @@ export default function AdminStreamOverridesScreen() {
   const [backupUrl, setBackupUrl] = useState('');
   const [streamtapeUrl, setStreamtapeUrl] = useState('');
   const [downloadUrl, setDownloadUrl] = useState('');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
   const [autoBroadcastTg, setAutoBroadcastTg] = useState(true);
 
   // Telegram Broadcast states
@@ -144,8 +145,8 @@ export default function AdminStreamOverridesScreen() {
     }
 
     // Ensure at least ONE link is provided
-    if (!customUrl.trim() && !streamtapeUrl.trim() && !downloadUrl.trim() && !backupUrl.trim()) {
-      showToast('Please provide at least one link (VIP Stream, StreamTape, or Download URL).', 'error');
+    if (!customUrl.trim() && !streamtapeUrl.trim() && !downloadUrl.trim() && !backupUrl.trim() && !youtubeUrl.trim()) {
+      showToast('Please provide at least one link (VIP Stream, YouTube, StreamTape, or Download URL).', 'error');
       return;
     }
 
@@ -169,6 +170,7 @@ export default function AdminStreamOverridesScreen() {
       backup_stream_url: backupUrl.trim() || null,
       streamtape_url: formattedStreamtapeUrl || null,
       download_url: downloadUrl.trim() || null,
+      youtube_url: youtubeUrl.trim() || null,
     });
     setSaving(false);
 
@@ -183,6 +185,7 @@ export default function AdminStreamOverridesScreen() {
       setBackupUrl('');
       setStreamtapeUrl('');
       setDownloadUrl('');
+      setYoutubeUrl('');
       fetchOverrides();
     } else {
       showToast(`Database Error: ${res.error || 'Failed to save stream override'}`, 'error');
@@ -198,6 +201,7 @@ export default function AdminStreamOverridesScreen() {
     setBackupUrl(record.backup_stream_url || '');
     setStreamtapeUrl(record.streamtape_url || '');
     setDownloadUrl(record.download_url || '');
+    setYoutubeUrl(record.youtube_url || '');
     showToast(`Loaded ${record.title} for editing`, 'info');
   };
 
@@ -373,6 +377,19 @@ export default function AdminStreamOverridesScreen() {
               value={downloadUrl}
               onChangeText={setDownloadUrl}
               placeholder="https://download.provider.com/file.mp4"
+              placeholderTextColor="#6b7280"
+              style={styles.textInput}
+              autoCapitalize="none"
+            />
+          </View>
+
+          {/* YouTube Stream / Embed URL */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>YouTube Stream URL / Embed Link</Text>
+            <TextInput
+              value={youtubeUrl}
+              onChangeText={setYoutubeUrl}
+              placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ or https://youtu.be/..."
               placeholderTextColor="#6b7280"
               style={styles.textInput}
               autoCapitalize="none"

@@ -150,6 +150,25 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
       }
     : null;
 
+  const youtubeServerObj: EmbedServer | null = customOverride?.youtube_url
+    ? {
+        id: 'custom_youtube',
+        name: 'YouTube Stream',
+        badge: 'HD YouTube',
+        getUrl: () => {
+          let raw = (customOverride.youtube_url || '').trim();
+          let ytId = '';
+          const match = raw.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+          if (match && match[1]) {
+            ytId = match[1];
+          } else if (/^[\w-]{11}$/.test(raw)) {
+            ytId = raw;
+          }
+          return ytId ? `https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0` : raw;
+        },
+      }
+    : null;
+
   const baseServers = isPunjabi
     ? EMBED_SERVERS.filter((s) => s.id === 'videasy' || s.id === 'embedmaster' || s.id === 'flmu' || s.id === 'youtube')
     : isKdrama
@@ -158,7 +177,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
     ? EMBED_SERVERS.filter((s) => s.id === 'anime' || s.id === 'videasy')
     : EMBED_SERVERS.filter((s) => s.id !== 'nontongo' && s.id !== 'anime');
 
-  const overrideServers = [customServerObj, streamtapeServerObj].filter(Boolean) as EmbedServer[];
+  const overrideServers = [youtubeServerObj, customServerObj, streamtapeServerObj].filter(Boolean) as EmbedServer[];
   const availableServers = overrideServers.length ? overrideServers : baseServers;
 
 
@@ -533,7 +552,29 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
           </View>
         ) : (
           <>
-            {activeServerId === 'youtube' ? (
+            {activeServerId === 'custom_youtube' ? (
+              Platform.OS === 'web' ? (
+                <iframe
+                  src={currentServer.getUrl()}
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                  allowFullScreen
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    border: 'none',
+                    backgroundColor: '#000',
+                  }}
+                />
+              ) : (
+                <WebView
+                  source={{ uri: currentServer.getUrl() }}
+                  style={styles.webview}
+                  allowsFullscreenVideo
+                  javaScriptEnabled
+                  domStorageEnabled
+                />
+              )
+            ) : activeServerId === 'youtube' ? (
               <YouTubePlayer
                 media={media}
                 season={season}
