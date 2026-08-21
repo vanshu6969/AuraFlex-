@@ -1,7 +1,14 @@
 {
   "short_name": "AuraFlex",
-  "name": "AuraFlex Cinema - Movies & Series",
+  "name": "AuraFlex Movies - Watch & Download Free HD Movies",
+  "description": "Official hub to stream and download full Bollywood, Hollywood, and regional movies in 1080p Full HD with zero popup ads.",
   "icons": [
+    {
+      "src": "/icon.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    },
     {
       "src": "/assets/icon.png",
       "type": "image/png",
@@ -13,5 +20,6 @@
   "background_color": "#0b0c0f",
   "theme_color": "#e50914",
   "display": "standalone",
-  "orientation": "any"
+  "orientation": "any",
+  "categories": ["entertainment", "movies"]
 }

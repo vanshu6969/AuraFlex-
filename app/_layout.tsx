@@ -12,6 +12,7 @@ import { AuraAuthModal, AuraAuthView } from '../components/AuraAuthModal';
 import { DisclaimerModal } from '../components/DisclaimerModal';
 import { CommandSearch } from '../components/CommandSearch';
 import { ToastNotification } from '../components/ToastNotification';
+import { PWAInstallBanner } from '../components/PWAInstallBanner';
 
 
 import { useAntiNewTab } from '../lib/antiNewTab';
@@ -119,6 +120,7 @@ function RootContent() {
       <AuraAuthModal visible={authVisible} onClose={() => setAuthVisible(false)} initialView={initialAuthView} />
       <DisclaimerModal />
       <ToastNotification />
+      <PWAInstallBanner />
       {Platform.OS === 'web' && (
         <>
           <Analytics />
