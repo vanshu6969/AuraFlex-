@@ -472,54 +472,63 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
       </View>
 
 
-      {/* Multi-Server Selector Chips */}
-      <View style={styles.serverRow}>
-        {availableServers.map((server) => {
-          const isActive = server.id === activeServerId;
-          return (
-            <ServerPillButton
-              key={server.id}
-              serverId={server.id}
-              name={server.name}
-              badge={server.badge?.includes('HD') ? 'HD' : 'FAST'}
-              isActive={isActive}
-              onSelect={() => handleServerSwitch(server.id)}
-            />
-          );
-        })}
+      {/* Multi-Server Selector Chips or Exclusive Override Indicator */}
+      {!hasOverride ? (
+        <View style={styles.serverRow}>
+          {availableServers.map((server) => {
+            const isActive = server.id === activeServerId;
+            return (
+              <ServerPillButton
+                key={server.id}
+                serverId={server.id}
+                name={server.name}
+                badge={server.badge?.includes('HD') ? 'HD' : 'FAST'}
+                isActive={isActive}
+                onSelect={() => handleServerSwitch(server.id)}
+              />
+            );
+          })}
+        </View>
+      ) : (
+        <View style={styles.serverRow}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(16, 185, 129, 0.15)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.3)' }}>
+            <Ionicons name="checkmark-seal" size={16} color="#10b981" />
+            <Text style={{ color: '#10b981', fontSize: 12, fontWeight: '800', letterSpacing: 0.5 }}>VERIFIED EXCLUSIVE STREAM</Text>
+          </View>
 
-        {customOverride?.download_url ? (
-          <TouchableOpacity
-            onPress={handleDownloadPress}
-            style={styles.emeraldDownloadBtn}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="download-outline" size={16} color="#ffffff" />
-            <Text style={styles.emeraldDownloadBtnText}>
-              Download {media.media_type === 'tv' ? 'Episode' : 'Movie'}
-            </Text>
-          </TouchableOpacity>
-        ) : customOverride?.streamtape_url ? (
-          <TouchableOpacity
-            onPress={() => {
-              const proxyDownloadUrl = getApiUrl(`/api/streamtape?url=${encodeURIComponent(customOverride.streamtape_url!)}&download=1`);
-              showToast('Starting high-speed StreamTape download...', 'success');
-              if (Platform.OS === 'web' && typeof window !== 'undefined') {
-                window.location.href = proxyDownloadUrl;
-              } else {
-                Linking.openURL(proxyDownloadUrl).catch(() => {});
-              }
-            }}
-            style={styles.emeraldDownloadBtn}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="download-outline" size={16} color="#ffffff" />
-            <Text style={styles.emeraldDownloadBtnText}>
-              Download 1080p
-            </Text>
-          </TouchableOpacity>
-        ) : null}
-      </View>
+          {customOverride?.download_url ? (
+            <TouchableOpacity
+              onPress={handleDownloadPress}
+              style={styles.emeraldDownloadBtn}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="download-outline" size={16} color="#ffffff" />
+              <Text style={styles.emeraldDownloadBtnText}>
+                Download {media.media_type === 'tv' ? 'Episode' : 'Movie'}
+              </Text>
+            </TouchableOpacity>
+          ) : customOverride?.streamtape_url ? (
+            <TouchableOpacity
+              onPress={() => {
+                const proxyDownloadUrl = getApiUrl(`/api/streamtape?url=${encodeURIComponent(customOverride.streamtape_url!)}&download=1`);
+                showToast('Starting high-speed StreamTape download...', 'success');
+                if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                  window.location.href = proxyDownloadUrl;
+                } else {
+                  Linking.openURL(proxyDownloadUrl).catch(() => {});
+                }
+              }}
+              style={styles.emeraldDownloadBtn}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="download-outline" size={16} color="#ffffff" />
+              <Text style={styles.emeraldDownloadBtnText}>
+                Download 1080p
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      )}
 
 
 
@@ -553,27 +562,93 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
         ) : (
           <>
             {activeServerId === 'custom_youtube' ? (
-              Platform.OS === 'web' ? (
-                <iframe
-                  src={currentServer.getUrl()}
-                  allow="autoplay; encrypted-media; picture-in-picture"
-                  allowFullScreen
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    border: 'none',
-                    backgroundColor: '#000',
-                  }}
-                />
-              ) : (
-                <WebView
-                  source={{ uri: currentServer.getUrl() }}
-                  style={styles.webview}
-                  allowsFullscreenVideo
-                  javaScriptEnabled
-                  domStorageEnabled
-                />
-              )
+              (() => {
+                const rawYt = customOverride?.youtube_url || '';
+                const match = rawYt.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+                const ytId = match ? match[1] : /^[\w-]{11}$/.test(rawYt.trim()) ? rawYt.trim() : '';
+                const ytEmbedUrl = ytId ? `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&rel=0` : currentServer.getUrl();
+
+                return Platform.OS === 'web' ? (
+                  <iframe
+                    src={ytEmbedUrl}
+                    allow="autoplay; encrypted-media; picture-in-picture"
+                    allowFullScreen
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      border: 'none',
+                      backgroundColor: '#000',
+                    }}
+                  />
+                ) : (
+                  <WebView
+                    source={{ uri: ytEmbedUrl }}
+                    style={styles.webview}
+                    allowsFullscreenVideo
+                    javaScriptEnabled
+                    domStorageEnabled
+                  />
+                );
+              })()
+            ) : activeServerId === 'custom_vip' && customOverride?.custom_stream_url ? (
+              (() => {
+                const rawUrl = customOverride.custom_stream_url.trim();
+                const isDirectVideo = /\.(mp4|m3u8|mkv|webm)(\?.*)?$/i.test(rawUrl);
+
+                if (isDirectVideo) {
+                  return Platform.OS === 'web' ? (
+                    <video
+                      key={rawUrl}
+                      src={rawUrl}
+                      controls
+                      autoPlay
+                      playsInline
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'contain',
+                        backgroundColor: '#000',
+                      }}
+                    />
+                  ) : (
+                    <WebView
+                      key={rawUrl}
+                      source={{
+                        html: `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>body,html{margin:0;padding:0;width:100%;height:100%;background:#000;display:flex;justify-content:center;align-items:center;}video{width:100%;height:100%;object-fit:contain;}</style></head><body><video src="${rawUrl}" controls autoplay playsinline></video></body></html>`,
+                      }}
+                      style={styles.webview}
+                      allowsFullscreenVideo
+                      javaScriptEnabled
+                      domStorageEnabled
+                      allowsInlineMediaPlayback
+                    />
+                  );
+                }
+
+                return Platform.OS === 'web' ? (
+                  <iframe
+                    key={rawUrl}
+                    src={rawUrl}
+                    allow="autoplay; encrypted-media; picture-in-picture"
+                    allowFullScreen
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      border: 'none',
+                      backgroundColor: '#000',
+                    }}
+                  />
+                ) : (
+                  <WebView
+                    key={rawUrl}
+                    source={{ uri: rawUrl }}
+                    style={styles.webview}
+                    allowsFullscreenVideo
+                    javaScriptEnabled
+                    domStorageEnabled
+                  />
+                );
+              })()
             ) : activeServerId === 'youtube' ? (
               <YouTubePlayer
                 media={media}
