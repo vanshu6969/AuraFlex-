@@ -13,6 +13,7 @@ import { DisclaimerModal } from '../components/DisclaimerModal';
 import { CommandSearch } from '../components/CommandSearch';
 import { ToastNotification } from '../components/ToastNotification';
 import { PWAInstallBanner } from '../components/PWAInstallBanner';
+import { InAppBrowserWarning } from '../components/InAppBrowserWarning';
 
 
 import { useAntiNewTab } from '../lib/antiNewTab';
