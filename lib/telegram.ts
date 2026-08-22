@@ -15,7 +15,7 @@ const TELEGRAM_BOT_TOKEN =
   process.env.TELEGRAM_BOT_TOKEN ||
   process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN ||
   process.env.EXPO_PUBLIC_TELEGRAM_BOT_TOKEN ||
-  '8871657624:AAGYxzusTnRHNxbBg9UGgjfUKBqHHvG3HgM';
+  '8958801051:AAGjaBCjT4bysH0iFygBjRU-n4T2ucIldms';
 
 const TELEGRAM_CHANNEL_ID =
   process.env.TELEGRAM_CHANNEL_ID ||
@@ -119,3 +119,73 @@ export async function sendMovieToTelegram(
     return { success: false, error: error.message || 'Unknown network error' };
   }
 }
+
+export async function sendTelegramPhotoToChat(
+  chatId: string | number,
+  photoUrl: string,
+  caption: string,
+  replyMarkup?: any
+): Promise<{ success: boolean; result?: any; error?: string }> {
+  try {
+    const payload = {
+      chat_id: chatId,
+      photo: photoUrl,
+      caption,
+      parse_mode: 'HTML',
+      reply_markup: replyMarkup,
+    };
+
+    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    if (!data.ok) {
+      console.error('[Telegram sendPhoto Error]', data);
+      return { success: false, error: data.description || 'Failed to send Telegram photo' };
+    }
+    return { success: true, result: data.result };
+  } catch (error: any) {
+    console.error('[Telegram sendPhoto Exception]', error);
+    return { success: false, error: error.message || 'Network error' };
+  }
+}
+
+export async function sendTelegramMessageToChat(
+  chatId: string | number,
+  text: string,
+  replyMarkup?: any
+): Promise<{ success: boolean; result?: any; error?: string }> {
+  try {
+    const payload = {
+      chat_id: chatId,
+      text,
+      parse_mode: 'HTML',
+      disable_web_page_preview: false,
+      reply_markup: replyMarkup,
+    };
+
+    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    if (!data.ok) {
+      console.error('[Telegram sendMessage Error]', data);
+      return { success: false, error: data.description || 'Failed to send Telegram message' };
+    }
+    return { success: true, result: data.result };
+  } catch (error: any) {
+    console.error('[Telegram sendMessage Exception]', error);
+    return { success: false, error: error.message || 'Network error' };
+  }
+}
+
