@@ -250,6 +250,43 @@ export default function AdminStreamOverridesScreen() {
     }
   };
 
+  const handleSaveDownloadLink = async () => {
+    if (!tmdbId.trim() || !title.trim()) {
+      showToast('Please enter a TMDB ID and Title.', 'error');
+      return;
+    }
+    const rawDownload = downloadUrl.trim() || smartStreamUrl.trim();
+    if (!rawDownload) {
+      showToast('Please enter a Direct Download link in the Download URL field.', 'error');
+      return;
+    }
+    setSaving(true);
+    const saveTitle = title.trim();
+    const saveTmdbId = tmdbId.trim();
+    const res = await streamOverrideService.upsertOverride({
+      tmdb_id: saveTmdbId,
+      title: saveTitle,
+      media_type: mediaType,
+      season: mediaType !== 'movie' ? seasonNum : undefined,
+      episode: mediaType !== 'movie' ? episodeNum : undefined,
+      download_url: rawDownload,
+      custom_stream_url: customUrl.trim() || (detectedProvider.type === 'vip' ? smartStreamUrl.trim() : null),
+      streamtape_url: streamtapeUrl.trim() || (detectedProvider.type === 'streamtape' ? smartStreamUrl.trim() : null),
+      youtube_url: youtubeUrl.trim() || (detectedProvider.type === 'youtube' ? smartStreamUrl.trim() : null),
+    });
+    setSaving(false);
+
+    if (res.success) {
+      showToast(`Direct Download Link set for "${saveTitle}"!`, 'success');
+      if (autoBroadcastTg) {
+        handlePublishToTelegram(saveTitle, saveTmdbId);
+      }
+      fetchOverrides();
+    } else {
+      showToast(`Database Error: ${res.error || 'Failed to save download link'}`, 'error');
+    }
+  };
+
   const handleResetForm = () => {
     setTmdbId('');
     setTitle('');
@@ -655,6 +692,25 @@ export default function AdminStreamOverridesScreen() {
                   />
                 </View>
 
+                {/* Direct 4K/HD Download URL Input */}
+                <View style={styles.inputGroup}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <Text style={styles.inputLabel}>Direct 4K/HD Download URL (Fast 1-Click Link)</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(16,185,129,0.1)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+                      <Ionicons name="download-outline" size={12} color="#10b981" />
+                      <Text style={{ color: '#10b981', fontSize: 10, fontWeight: '800' }}>Direct Download</Text>
+                    </View>
+                  </View>
+                  <TextInput
+                    value={downloadUrl}
+                    onChangeText={setDownloadUrl}
+                    placeholder="https://download.provider.com/file.mp4 or 1-click download link"
+                    placeholderTextColor="#6b7280"
+                    style={[styles.textInput, { borderColor: downloadUrl.trim() ? '#10b981' : '#374151' }]}
+                    autoCapitalize="none"
+                  />
+                </View>
+
                 {/* Subtitle (.vtt / .srt) Input */}
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Multi-Language Subtitles (.vtt / .srt) (Optional)</Text>
@@ -690,10 +746,6 @@ export default function AdminStreamOverridesScreen() {
                       <TextInput value={streamtapeUrl} onChangeText={setStreamtapeUrl} placeholder="https://streamtape.com/e/..." placeholderTextColor="#6b7280" style={styles.textInput} autoCapitalize="none" />
                     </View>
                     <View>
-                      <Text style={styles.inputLabel}>Direct 4K/HD Download URL</Text>
-                      <TextInput value={downloadUrl} onChangeText={setDownloadUrl} placeholder="https://..." placeholderTextColor="#6b7280" style={styles.textInput} autoCapitalize="none" />
-                    </View>
-                    <View>
                       <Text style={styles.inputLabel}>YouTube Stream URL</Text>
                       <TextInput value={youtubeUrl} onChangeText={setYoutubeUrl} placeholder="https://..." placeholderTextColor="#6b7280" style={styles.textInput} autoCapitalize="none" />
                     </View>
@@ -716,11 +768,11 @@ export default function AdminStreamOverridesScreen() {
                 </TouchableOpacity>
 
                 {/* Form Action Buttons Row */}
-                <View style={{ flexDirection: 'row', gap: 10, marginTop: 18 }}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 18 }}>
                   <TouchableOpacity
                     onPress={handleSave}
                     disabled={saving}
-                    style={[styles.saveBtn, { flex: 2, marginTop: 0 }]}
+                    style={[styles.saveBtn, { flex: 1.5, minWidth: 160, marginTop: 0 }]}
                   >
                     {saving ? (
                       <ActivityIndicator color="#ffffff" />
@@ -733,11 +785,27 @@ export default function AdminStreamOverridesScreen() {
                   </TouchableOpacity>
 
                   <TouchableOpacity
+                    onPress={handleSaveDownloadLink}
+                    disabled={saving}
+                    style={[styles.saveBtn, { flex: 1.5, minWidth: 160, marginTop: 0, backgroundColor: '#10b981' }]}
+                  >
+                    {saving ? (
+                      <ActivityIndicator color="#ffffff" />
+                    ) : (
+                      <>
+                        <Ionicons name="download-outline" size={18} color="#ffffff" />
+                        <Text style={styles.saveBtnText}>Set Download Link</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
                     onPress={handleResetForm}
-                    style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }}
+                    style={{ flex: 1, minWidth: 100, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', paddingVertical: 12 }}
                   >
                     <Text style={{ color: '#9ca3af', fontSize: 13, fontWeight: '700' }}>Reset Form</Text>
                   </TouchableOpacity>
+                </View>
                 </View>
               </View>
 
