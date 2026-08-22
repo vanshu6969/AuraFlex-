@@ -178,8 +178,8 @@ export default function MoreScreen() {
                   <Ionicons name="hardware-chip-outline" size={18} color="#e50914" />
                 </View>
                 <View style={styles.rowTextGroup}>
-                  <Text style={styles.rowTitle}>Stream Link Overrides</Text>
-                  <Text style={styles.rowSub}>Replace broken server links via Cloud DB</Text>
+                  <Text style={styles.rowTitle}>Admin Panel</Text>
+                  <Text style={styles.rowSub}>Manage stream links, broadcasts & user reports</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
               </TouchableOpacity>

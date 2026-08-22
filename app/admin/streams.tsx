@@ -478,7 +478,7 @@ export default function AdminStreamOverridesScreen() {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Text style={styles.breadcrumbText}>Admin</Text>
                 <Ionicons name="chevron-forward" size={12} color="#6b7280" />
-                <Text style={[styles.breadcrumbText, { color: '#e50914', fontWeight: '700' }]}>Stream Overrides</Text>
+                <Text style={[styles.breadcrumbText, { color: '#e50914', fontWeight: '700' }]}>Admin Panel</Text>
               </View>
               <Text style={styles.headerTitle}>Admin Panel</Text>
             </View>
