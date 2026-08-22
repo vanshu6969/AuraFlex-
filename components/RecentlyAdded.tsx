@@ -124,9 +124,6 @@ export const RecentlyAdded: React.FC<RecentlyAddedProps> = ({
         <View style={styles.headerLeft}>
           <View style={styles.redIndicator} />
           <Text style={styles.sectionTitle}>{title}</Text>
-          <View style={styles.countBadge}>
-            <Text style={styles.countBadgeText}>{itemList.length} Releases</Text>
-          </View>
         </View>
         <TouchableOpacity style={styles.exploreBtn} onPress={handleExplore} activeOpacity={0.7}>
           <Text style={styles.exploreText}>View All</Text>
@@ -178,7 +175,7 @@ export const RecentlyAdded: React.FC<RecentlyAddedProps> = ({
             ) : hasMore ? (
               <TouchableOpacity onPress={loadNextPage} style={styles.loadMoreBtn} activeOpacity={0.8}>
                 <Ionicons name="sparkles" size={14} color="#e50914" />
-                <Text style={styles.loadMoreBtnText}>Auto-Loading Feed • {itemList.length} Titles (Page {page})</Text>
+                <Text style={styles.loadMoreBtnText}>Auto-Loading Feed (Page {page})</Text>
               </TouchableOpacity>
             ) : (
               <Text style={styles.endText}>You have viewed all recently added releases.</Text>

@@ -226,9 +226,7 @@ export default function CategoryExplorePage() {
           <View style={[styles.heroAccentPill, { backgroundColor: categoryConfig.accentColor }]} />
           <Text style={styles.heroTitle}>{categoryName}</Text>
           <Text style={styles.heroSub}>{categoryConfig.subtitle}</Text>
-          <Text style={styles.heroMetaText}>
-            Infinite Collection • {filteredItems.length} titles loaded (Page {page})
-          </Text>
+          <Text style={styles.heroMetaText}>Infinite Collection</Text>
         </View>
       </View>
 
@@ -282,7 +280,7 @@ export default function CategoryExplorePage() {
             style={[styles.typeTab, mediaTypeFilter === 'all' && styles.typeTabActive]}
           >
             <Text style={[styles.typeTabText, mediaTypeFilter === 'all' && styles.typeTabTextActive]}>
-              All ({items.length})
+              All
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -290,7 +288,7 @@ export default function CategoryExplorePage() {
             style={[styles.typeTab, mediaTypeFilter === 'movie' && styles.typeTabActive]}
           >
             <Text style={[styles.typeTabText, mediaTypeFilter === 'movie' && styles.typeTabTextActive]}>
-              Movies ({items.filter((i) => i.media_type === 'movie').length})
+              Movies
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -298,7 +296,7 @@ export default function CategoryExplorePage() {
             style={[styles.typeTab, mediaTypeFilter === 'tv' && styles.typeTabActive]}
           >
             <Text style={[styles.typeTabText, mediaTypeFilter === 'tv' && styles.typeTabTextActive]}>
-              Series ({items.filter((i) => i.media_type === 'tv' || i.media_type === 'anime').length})
+              Series
             </Text>
           </TouchableOpacity>
         </View>
@@ -310,7 +308,7 @@ export default function CategoryExplorePage() {
       ) : filteredItems.length > 0 ? (
         <View>
           <MediaSection
-            title={`${categoryName} (${filteredItems.length})`}
+            title={categoryName}
             items={filteredItems}
             variant="grid"
           />

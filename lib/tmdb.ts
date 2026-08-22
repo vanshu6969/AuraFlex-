@@ -44,55 +44,54 @@ const deduplicateMediaList = (items: MediaItem[]): MediaItem[] => {
 };
 
 const MCU_TIMELINE_ORDER: Record<string, number> = {
-  'captain america: the first avenger': 1,
-  'captain marvel': 2,
-  'iron man': 3,
-  'iron man 2': 4,
-  'the incredible hulk': 5,
-  'thor': 6,
-  'the avengers': 7,
-  "marvel's the avengers": 7,
-  'iron man 3': 8,
-  'thor: the dark world': 9,
-  'captain america: the winter soldier': 10,
-  'guardians of the galaxy': 11,
-  'guardians of the galaxy vol. 2': 12,
-  'avengers: age of ultron': 13,
-  'ant-man': 14,
-  'captain america: civil war': 15,
-  'black widow': 16,
-  'black panther': 17,
-  'spider-man: homecoming': 18,
-  'doctor strange': 19,
-  'thor: ragnarok': 20,
-  'ant-man and the wasp': 21,
-  'avengers: infinity war': 22,
-  'avengers: endgame': 23,
-  'loki': 24,
-  'what if...?': 25,
-  'wandavision': 26,
-  'the falcon and the winter soldier': 27,
-  'spider-man: far from home': 28,
-  'shang-chi and the legend of the ten rings': 29,
-  'eternals': 30,
-  'spider-man: no way home': 31,
-  'doctor strange in the multiverse of madness': 32,
-  'hawkeye': 33,
-  'moon knight': 34,
-  'ms. marvel': 35,
-  'thor: love and thunder': 36,
-  'i am groot': 37,
-  'she-hulk: attorney at law': 38,
-  'werewolf by night': 39,
-  'black panther: wakanda forever': 40,
-  'the guardians of the galaxy holiday special': 41,
-  'ant-man and the wasp: quantumania': 42,
-  'guardians of the galaxy vol. 3': 43,
-  'secret invasion': 44,
-  'the marvels': 45,
-  'echo': 46,
-  'deadpool & wolverine': 47,
-  'agatha all along': 48,
+  'iron man': 1,
+  'the incredible hulk': 2,
+  'iron man 2': 3,
+  'thor': 4,
+  'captain america: the first avenger': 5,
+  'the avengers': 6,
+  "marvel's the avengers": 6,
+  'iron man 3': 7,
+  'thor: the dark world': 8,
+  'captain america: the winter soldier': 9,
+  'guardians of the galaxy': 10,
+  'guardians of the galaxy vol. 2': 11,
+  'avengers: age of ultron': 12,
+  'ant-man': 13,
+  'captain america: civil war': 14,
+  'black widow': 15,
+  'black panther': 16,
+  'spider-man: homecoming': 17,
+  'doctor strange': 18,
+  'thor: ragnarok': 19,
+  'ant-man and the wasp': 20,
+  'avengers: infinity war': 21,
+  'avengers: endgame': 22,
+  'loki': 23,
+  'what if...?': 24,
+  'wandavision': 25,
+  'the falcon and the winter soldier': 26,
+  'spider-man: far from home': 27,
+  'shang-chi and the legend of the ten rings': 28,
+  'eternals': 29,
+  'spider-man: no way home': 30,
+  'doctor strange in the multiverse of madness': 31,
+  'hawkeye': 32,
+  'moon knight': 33,
+  'ms. marvel': 34,
+  'thor: love and thunder': 35,
+  'i am groot': 36,
+  'she-hulk: attorney at law': 37,
+  'werewolf by night': 38,
+  'black panther: wakanda forever': 39,
+  'the guardians of the galaxy holiday special': 40,
+  'ant-man and the wasp: quantumania': 41,
+  'guardians of the galaxy vol. 3': 42,
+  'secret invasion': 43,
+  'the marvels': 44,
+  'echo': 45,
+  'deadpool & wolverine': 46,
+  'agatha all along': 47,
 };
 
 const DC_TIMELINE_ORDER: Record<string, number> = {
@@ -529,15 +528,19 @@ export const tmdbService = {
       const catLower = categoryKey.toLowerCase();
 
       if (catLower === 'marvel') {
-        const [moviesRes, tvRes] = await Promise.all([
+        const [moviesRes1, moviesRes2, tvRes1, tvRes2] = await Promise.all([
           fetch(`${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&with_companies=420|7505|38679|19551&sort_by=popularity.desc&page=${page}`),
+          fetch(`${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&with_companies=420|7505|38679|19551&sort_by=popularity.desc&page=${page + 1}`),
           fetch(`${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&with_companies=420|7505|38679|19551&sort_by=popularity.desc&page=${page}`),
+          fetch(`${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&with_companies=420|7505|38679|19551&sort_by=popularity.desc&page=${page + 1}`),
         ]);
-        const moviesData = moviesRes.ok ? await moviesRes.json() : { results: [] };
-        const tvData = tvRes.ok ? await tvRes.json() : { results: [] };
+        const mData1 = moviesRes1.ok ? await moviesRes1.json() : { results: [] };
+        const mData2 = moviesRes2.ok ? await moviesRes2.json() : { results: [] };
+        const tvData1 = tvRes1.ok ? await tvRes1.json() : { results: [] };
+        const tvData2 = tvRes2.ok ? await tvRes2.json() : { results: [] };
 
-        const movies = (moviesData.results || []).map((i: any) => this.formatMediaItem(i, 'movie'));
-        const shows = (tvData.results || []).map((i: any) => this.formatMediaItem(i, 'tv'));
+        const movies = [...(mData1.results || []), ...(mData2.results || [])].map((i: any) => this.formatMediaItem(i, 'movie'));
+        const shows = [...(tvData1.results || []), ...(tvData2.results || [])].map((i: any) => this.formatMediaItem(i, 'tv'));
         rawList = [...movies, ...shows];
       } else if (catLower === 'dc') {
         const [moviesRes, tvRes] = await Promise.all([
@@ -595,10 +598,21 @@ export const tmdbService = {
         rawList = data.results.map((item: any) => this.formatMediaItem(item, defaultType));
       }
 
-      let items = deduplicateMediaList(rawList);
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      // Filter out unreleased future titles (e.g. Doomsday, Secret Wars)
+      let items = deduplicateMediaList(rawList).filter((item) => {
+        if (item.release_date && item.release_date > todayStr) return false;
+        if (item.first_air_date && item.first_air_date > todayStr) return false;
+        return true;
+      });
 
       // Perform custom sorting
       if (sortBy === 'release_asc') {
+        if (catLower === 'marvel') {
+          // MCU release order starts cleanly with Iron Man (2008)
+          items = items.filter((i) => (i.year || 0) >= 2008);
+        }
         items.sort((a, b) => (a.year || 9999) - (b.year || 9999));
       } else if (sortBy === 'release_desc') {
         items.sort((a, b) => (b.year || 0) - (a.year || 0));
