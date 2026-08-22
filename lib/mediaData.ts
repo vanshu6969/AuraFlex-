@@ -21,6 +21,7 @@ export const isKdramaOrCdrama = (item: MediaItem): boolean => {
   const genres = item.genres || [];
   const lowerGenres = genres.map((g) => g.toLowerCase());
   const titleLower = (item.title || '').toLowerCase();
+  const overviewLower = (item.overview || '').toLowerCase();
 
   return (
     lowerGenres.some(
@@ -35,9 +36,14 @@ export const isKdramaOrCdrama = (item: MediaItem): boolean => {
     ) ||
     titleLower.includes('kdrama') ||
     titleLower.includes('cdrama') ||
+    titleLower.includes('korean') ||
     titleLower.includes('queen of tears') ||
     titleLower.includes('dear x') ||
     titleLower.includes('our sticky love') ||
+    overviewLower.includes('k-drama') ||
+    overviewLower.includes('kdrama') ||
+    overviewLower.includes('korean drama') ||
+    overviewLower.includes('chinese drama') ||
     (item.original_title ? /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af]/.test(item.original_title) : false)
   );
 };

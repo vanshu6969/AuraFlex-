@@ -167,18 +167,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }, [isKdrama, media.title, episode]);
 
   useEffect(() => {
-    if (isPunjabi) {
-      const idx = SERVERS.findIndex((s) => s.id === 'flmu');
-      if (idx !== -1) {
-        setActiveServerIndex(idx);
-      }
-    } else if (isKdrama) {
+    if (isKdrama) {
       if (kisskhEmbedUrl) {
         const kissIdx = SERVERS.findIndex((s) => s.id === 'kisskh');
         if (kissIdx !== -1) setActiveServerIndex(kissIdx);
       } else {
         const idx = SERVERS.findIndex((s) => s.id === 'nontongo');
         if (idx !== -1) setActiveServerIndex(idx);
+      }
+    } else if (isPunjabi) {
+      const idx = SERVERS.findIndex((s) => s.id === 'flmu');
+      if (idx !== -1) {
+        setActiveServerIndex(idx);
       }
     } else if (isAnime) {
       const idx = SERVERS.findIndex((s) => s.id === 'anime');

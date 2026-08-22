@@ -69,7 +69,9 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
   const isAnime = isAnimeMedia(media);
   const isSeries = media.media_type === 'tv' || (media.media_type === 'anime' && (media.episodes_count || 0) > 1);
 
-  const [activeServerId, setActiveServerId] = useState(() => 'videasy');
+  const [activeServerId, setActiveServerId] = useState(() =>
+    isKdrama ? 'nontongo' : isPunjabi ? 'flmu' : isAnime ? 'anime' : 'videasy'
+  );
   const [customOverride, setCustomOverride] = useState<StreamOverrideRecord | null>(null);
   const hasOverride = !!customOverride;
   const [streamtapeMp4Url, setStreamtapeMp4Url] = useState<string | null>(null);
@@ -262,14 +264,16 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
           }
         }
 
-        if (preferredServer && availableServers.some((s) => s.id === preferredServer)) {
-          setActiveServerId(preferredServer);
+        if (isKdrama) {
+          setActiveServerId('nontongo');
         } else if (isPunjabi) {
           setActiveServerId('flmu');
-        } else if (isKdrama) {
-          setActiveServerId('nontongo');
         } else if (isAnime) {
           setActiveServerId('anime');
+        } else if (savedState?.serverId && availableServers.some((s) => s.id === savedState.serverId)) {
+          setActiveServerId(savedState.serverId);
+        } else if (preferredServer && availableServers.some((s) => s.id === preferredServer)) {
+          setActiveServerId(preferredServer);
         } else {
           setActiveServerId('videasy');
         }
