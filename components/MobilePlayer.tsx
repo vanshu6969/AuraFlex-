@@ -74,8 +74,6 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
   );
   const [customOverride, setCustomOverride] = useState<StreamOverrideRecord | null>(null);
   const hasOverride = !!customOverride;
-  const [streamtapeMp4Url, setStreamtapeMp4Url] = useState<string | null>(null);
-  const [resolvingStreamtape, setResolvingStreamtape] = useState(false);
 
   useEffect(() => {
     streamOverrideService.getOverride(media.id).then((override) => {
