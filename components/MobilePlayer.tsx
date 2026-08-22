@@ -630,6 +630,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
                   <iframe
                     key={rawUrl}
                     src={rawUrl}
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
                     allow="autoplay; encrypted-media; picture-in-picture"
                     allowFullScreen
                     style={{
@@ -736,6 +737,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
                         border: 'none',
                         backgroundColor: '#000',
                       }}
+                      sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
                       allowFullScreen={true}
                       allow="autoplay; fullscreen; picture-in-picture; encrypted-media; accelerometer; gyroscope"
                       referrerPolicy="no-referrer-when-downgrade"
