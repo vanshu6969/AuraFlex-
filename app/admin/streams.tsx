@@ -402,7 +402,7 @@ export default function AdminStreamOverridesScreen() {
             style={[styles.navTabBtn, activeTab === 'overrides' && styles.navTabBtnActive]}
           >
             <Ionicons name="options-outline" size={16} color={activeTab === 'overrides' ? '#e50914' : '#9ca3af'} />
-            <Text style={[styles.navTabText, activeTab === 'overrides' && styles.navTabTextActive]}>Stream Overrides</Text>
+            <Text style={[styles.navTabText, activeTab === 'overrides' && styles.navTabTextActive]}>Admin Panel</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
