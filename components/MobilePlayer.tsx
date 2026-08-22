@@ -71,6 +71,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
 
   const [activeServerId, setActiveServerId] = useState(() => 'videasy');
   const [customOverride, setCustomOverride] = useState<StreamOverrideRecord | null>(null);
+  const hasOverride = !!customOverride;
   const [streamtapeMp4Url, setStreamtapeMp4Url] = useState<string | null>(null);
   const [resolvingStreamtape, setResolvingStreamtape] = useState(false);
 
