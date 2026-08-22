@@ -187,6 +187,15 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
   const [season, setSeason] = useState(initialSeason);
   const [episode, setEpisode] = useState(initialEpisode);
 
+  useEffect(() => {
+    if (initialSeason && initialSeason !== season) {
+      setSeason(initialSeason);
+    }
+    if (initialEpisode && initialEpisode !== episode) {
+      setEpisode(initialEpisode);
+    }
+  }, [initialSeason, initialEpisode]);
+
   const [seasons, setSeasons] = useState<Array<{ season_number: number; episode_count: number; name: string }>>([
     { season_number: 1, episode_count: 10, name: 'Season 1' },
   ]);

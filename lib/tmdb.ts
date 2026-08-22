@@ -355,15 +355,33 @@ export const tmdbService = {
         const tvRes = await fetch(`${TMDB_BASE_URL}/tv/on_the_air?api_key=${TMDB_API_KEY}&language=en-US&page=${page}`);
         if (tvRes.ok) {
           const tvData = await tvRes.json();
-          tvEpisodeItems = (tvData.results || []).map((raw: any) => {
-            const formatted = this.formatMediaItem(raw, 'tv');
-            formatted.season = raw.last_episode_to_air?.season_number || 1;
-            formatted.episode = raw.last_episode_to_air?.episode_number || 1;
-            if (raw.last_episode_to_air?.still_path) {
-              formatted.still_path = `${IMAGE_BASE_URL}/w500${raw.last_episode_to_air.still_path}`;
-            }
-            return formatted;
-          });
+          const rawResults = (tvData.results || []).slice(0, 15);
+
+          const detailedTvList = await Promise.all(
+            rawResults.map(async (raw: any) => {
+              try {
+                const detailRes = await fetch(`${TMDB_BASE_URL}/tv/${raw.id}?api_key=${TMDB_API_KEY}&language=en-US`);
+                if (detailRes.ok) {
+                  const detail = await detailRes.json();
+                  const formatted = this.formatMediaItem(detail, 'tv');
+                  if (detail.last_episode_to_air) {
+                    formatted.season = detail.last_episode_to_air.season_number;
+                    formatted.episode = detail.last_episode_to_air.episode_number;
+                    if (detail.last_episode_to_air.still_path) {
+                      formatted.still_path = `${IMAGE_BASE_URL}/w500${detail.last_episode_to_air.still_path}`;
+                    }
+                  } else if (detail.number_of_seasons) {
+                    formatted.season = detail.number_of_seasons;
+                    formatted.episode = 1;
+                  }
+                  return formatted;
+                }
+              } catch {}
+              return this.formatMediaItem(raw, 'tv');
+            })
+          );
+
+          tvEpisodeItems = detailedTvList;
         }
       } catch (e) {}
 

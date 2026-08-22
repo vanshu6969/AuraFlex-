@@ -84,7 +84,13 @@ export default function WatchScreen() {
           }
         } else {
           const tmdbItem = await tmdbService.getMediaDetails(mediaId, mediaType);
-          if (tmdbItem) setActiveMedia(tmdbItem);
+          if (tmdbItem) {
+            setActiveMedia({
+              ...tmdbItem,
+              season: parsedSeason || tmdbItem.season,
+              episode: parsedEpisode || tmdbItem.episode,
+            });
+          }
         }
       } catch (e) {
         console.error('Metadata fetch error:', e);
@@ -96,7 +102,7 @@ export default function WatchScreen() {
     tmdbService.getTrending().then((trending) => {
       setRecommended(trending.filter((m) => String(m.id) !== String(mediaId)));
     });
-  }, [mediaId, mediaType]);
+  }, [mediaId, mediaType, parsedSeason, parsedEpisode]);
 
   const handleBack = () => {
     if (router.canGoBack()) {
@@ -133,7 +139,11 @@ export default function WatchScreen() {
 
 
       {/* Embedded Fullscreen Video Player with Multi-Server Switcher */}
-      <MobilePlayer media={activeMedia} />
+      <MobilePlayer
+        media={activeMedia}
+        season={parsedSeason || activeMedia.season || 1}
+        episode={parsedEpisode || activeMedia.episode || 1}
+      />
 
       {/* Recommended Titles Carousel */}
       <MobileMediaGrid title="🔥 Recommended For You" items={recommended} variant="carousel" />
