@@ -13,6 +13,7 @@ import { DisclaimerModal } from '../components/DisclaimerModal';
 import { CommandSearch } from '../components/CommandSearch';
 import { ToastNotification } from '../components/ToastNotification';
 import { PWAInstallBanner } from '../components/PWAInstallBanner';
+import { IosInstallPrompt } from '../components/IosInstallPrompt';
 import { InAppBrowserWarning } from '../components/InAppBrowserWarning';
 
 
@@ -123,6 +124,7 @@ function RootContent() {
       <DisclaimerModal />
       <ToastNotification />
       <PWAInstallBanner />
+      <IosInstallPrompt />
       {Platform.OS === 'web' && (
         <>
           <Analytics />
