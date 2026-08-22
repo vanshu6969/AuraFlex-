@@ -7,7 +7,7 @@ import { MobileHeroBanner } from '../../components/MobileHeroBanner';
 import { MobileMediaGrid } from '../../components/MobileMediaGrid';
 import { ContinueWatchingCard } from '../../components/ContinueWatchingCard';
 import { Top10MediaRow } from '../../components/Top10MediaRow';
-import { CategoryPillBar } from '../../components/CategoryPillBar';
+import { RecentlyAdded } from '../../components/RecentlyAdded';
 import { tmdbService } from '../../lib/tmdb';
 import { storageService, subscribeStorage } from '../../lib/storage';
 import { MediaItem, WatchProgress } from '../../types/media';
@@ -109,7 +109,7 @@ export default function HomeScreen() {
       {/* Media Rows */}
       <MobileMediaGrid title="🎬 Popular Movies" items={popularMovies} variant="carousel" />
       <MobileMediaGrid title="📺 Top Rated TV Series" items={topTVShows} variant="carousel" />
-      <MobileMediaGrid title="✨ Recently Added" items={recentlyAdded} variant="grid" />
+      <RecentlyAdded title="Recently Added" items={recentlyAdded} variant="grid" />
     </ScrollView>
   );
 }

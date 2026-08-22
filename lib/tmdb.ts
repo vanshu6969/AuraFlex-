@@ -1,5 +1,5 @@
 import { MediaItem } from '../types/media';
-
+import { supabase } from './supabase';
 import { MOCK_MEDIA_ITEMS } from './mediaData';
 
 const TMDB_API_KEY = process.env.EXPO_PUBLIC_TMDB_API_KEY || '5f85fd51bf4325e76cad21aadfe1ecc6';
@@ -295,10 +295,92 @@ export const tmdbService = {
 
   async getRecentlyAdded(): Promise<MediaItem[]> {
     try {
-      const res = await fetch(`${TMDB_BASE_URL}/movie/now_playing?api_key=${TMDB_API_KEY}&language=en-US&page=1`);
-      if (!res.ok) throw new Error('Now playing fetch error');
-      const data = await res.json();
-      return data.results.map((item: any) => this.formatMediaItem(item, 'movie'));
+      let supabaseItems: MediaItem[] = [];
+
+      // 1. Fetch recently updated stream overrides from Supabase
+      try {
+        const { data: overrides } = await supabase
+          .from('stream_overrides')
+          .select('*')
+          .order('updated_at', { ascending: false })
+          .limit(20);
+
+        if (overrides && overrides.length > 0) {
+          for (const item of overrides) {
+            const tmdbId = item.tmdb_id;
+            const mediaType: 'movie' | 'tv' | 'anime' = item.media_type === 'tv' ? 'tv' : item.media_type === 'anime' ? 'anime' : 'movie';
+
+            // Detail fetch from TMDB if tmdbId is numeric
+            if (tmdbId && /^\d+$/.test(tmdbId)) {
+              try {
+                const res = await fetch(`${TMDB_BASE_URL}/${mediaType === 'anime' ? 'tv' : mediaType}/${tmdbId}?api_key=${TMDB_API_KEY}&language=en-US`);
+                if (res.ok) {
+                  const raw = await res.json();
+                  const formatted = this.formatMediaItem(raw, mediaType);
+                  if (item.season && item.episode) {
+                    formatted.season = parseInt(String(item.season), 10);
+                    formatted.episode = parseInt(String(item.episode), 10);
+                  }
+                  supabaseItems.push(formatted);
+                  continue;
+                }
+              } catch {}
+            }
+
+            // Fallback for custom stream overrides without TMDB details
+            supabaseItems.push({
+              id: item.tmdb_id,
+              title: item.title || 'Recently Added Release',
+              overview: 'Stream and download recently updated release on AuraFlex Movies.',
+              poster_path: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800&auto=format&fit=crop&q=80',
+              backdrop_path: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1600&auto=format&fit=crop&q=80',
+              media_type: mediaType,
+              vote_average: 8.5,
+              genres: ['Action', 'Drama'],
+              quality: '1080p Full HD',
+              season: item.season ? parseInt(String(item.season), 10) : undefined,
+              episode: item.episode ? parseInt(String(item.episode), 10) : undefined,
+              updated_at: item.updated_at,
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('[getRecentlyAdded] Supabase query notice:', e);
+      }
+
+      // 2. Fetch recent TV episode releases from TMDB
+      let tvEpisodeItems: MediaItem[] = [];
+      try {
+        const tvRes = await fetch(`${TMDB_BASE_URL}/tv/on_the_air?api_key=${TMDB_API_KEY}&language=en-US&page=1`);
+        if (tvRes.ok) {
+          const tvData = await tvRes.json();
+          tvEpisodeItems = (tvData.results || []).slice(0, 10).map((raw: any) => {
+            const formatted = this.formatMediaItem(raw, 'tv');
+            formatted.season = raw.last_episode_to_air?.season_number || 1;
+            formatted.episode = raw.last_episode_to_air?.episode_number || 1;
+            if (raw.last_episode_to_air?.still_path) {
+              formatted.still_path = `${IMAGE_BASE_URL}/w500${raw.last_episode_to_air.still_path}`;
+            }
+            return formatted;
+          });
+        }
+      } catch (e) {}
+
+      // 3. Fetch recent movie releases from TMDB
+      let movieItems: MediaItem[] = [];
+      try {
+        const movieRes = await fetch(`${TMDB_BASE_URL}/movie/now_playing?api_key=${TMDB_API_KEY}&language=en-US&page=1`);
+        if (movieRes.ok) {
+          const movieData = await movieRes.json();
+          movieItems = (movieData.results || []).slice(0, 10).map((raw: any) => this.formatMediaItem(raw, 'movie'));
+        }
+      } catch (e) {}
+
+      // Interleave/combine all feeds into a single unified list
+      const combined = [...supabaseItems, ...tvEpisodeItems, ...movieItems];
+      const deduplicated = deduplicateMediaList(combined);
+
+      return deduplicated.length > 0 ? deduplicated : [...MOCK_MEDIA_ITEMS].reverse();
     } catch {
       return [...MOCK_MEDIA_ITEMS].reverse();
     }

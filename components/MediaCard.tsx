@@ -20,15 +20,33 @@ export const MediaCard: React.FC<MediaCardProps> = ({
   const handlePress = () => {
     if (onPress) {
       onPress();
+    } else if (item.season && item.episode) {
+      router.push(`/watch/${item.media_type || 'tv'}/${item.id}?season=${item.season}&episode=${item.episode}` as any);
     } else {
-      router.push(`/watch/${item.media_type || 'movie'}/${item.id}`);
+      router.push(`/watch/${item.media_type || 'movie'}/${item.id}` as any);
     }
   };
 
   const isFixed = typeof width === 'number';
-  const genreText = (item.genres?.[0] || item.media_type || 'SERIES').toUpperCase();
+  const hasEpisodeInfo = typeof item.season === 'number' && typeof item.episode === 'number';
+  
+  const genreText = hasEpisodeInfo
+    ? `S${item.season} • E${item.episode}`
+    : (item.genres?.[0] || item.media_type || 'MOVIE').toUpperCase();
+    
   const ratingText = typeof item.vote_average === 'number' ? item.vote_average.toFixed(1) : '8.1';
   const qualityText = item.quality?.includes('4K') ? '4K ULTRA HD' : '1080p HD';
+
+  // Fallback image logic: still_path -> poster_path -> backdrop_path -> placeholder
+  const imageSource =
+    item.still_path ||
+    item.poster_path ||
+    item.backdrop_path ||
+    'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800&auto=format&fit=crop&q=80';
+
+  const displayTitle = hasEpisodeInfo
+    ? `${item.title} - S${item.season} E${item.episode}`
+    : item.title;
 
   return (
     <TouchableOpacity
@@ -43,7 +61,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({
       {/* Aspect 2:3 Poster Container */}
       <View style={styles.posterWrapper}>
         <Image
-          source={{ uri: item.poster_path || item.backdrop_path }}
+          source={{ uri: imageSource }}
           style={styles.posterImage}
           resizeMode="cover"
         />
@@ -54,21 +72,27 @@ export const MediaCard: React.FC<MediaCardProps> = ({
           <Text style={styles.badgeText}>{ratingText}</Text>
         </View>
 
-        {/* Minimal Frosted Glass Quality Badge (Top Right) */}
-        <View style={styles.glassBadgeRight}>
-          <Text style={styles.qualityText}>{qualityText.includes('4K') ? '4K' : 'HD'}</Text>
-        </View>
+        {/* Top Right Badge: Season/Episode Overlay or Quality Badge */}
+        {hasEpisodeInfo ? (
+          <View style={styles.episodeBadgeRight}>
+            <Text style={styles.episodeBadgeText}>S{item.season} • E{item.episode}</Text>
+          </View>
+        ) : (
+          <View style={styles.glassBadgeRight}>
+            <Text style={styles.qualityText}>{qualityText.includes('4K') ? '4K' : 'HD'}</Text>
+          </View>
+        )}
 
         {/* Smooth Inner Bottom Multi-stop Linear Gradient */}
         <View style={styles.bottomGradient} />
 
         {/* Overlay Title & Category Kicker inside Poster Bottom */}
         <View style={styles.posterBottomOverlay}>
-          <Text style={styles.genreKicker} numberOfLines={1}>
+          <Text style={[styles.genreKicker, hasEpisodeInfo && { color: '#38bdf8' }]} numberOfLines={1}>
             {genreText}
           </Text>
-          <Text style={styles.titleText} numberOfLines={1}>
-            {item.title}
+          <Text style={styles.titleText} numberOfLines={2}>
+            {displayTitle}
           </Text>
         </View>
       </View>
@@ -156,6 +180,29 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.5,
+  },
+  episodeBadgeRight: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#e50914',
+    paddingHorizontal: 7,
+    paddingVertical: 3.5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    zIndex: 5,
+    shadowColor: '#e50914',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  episodeBadgeText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.4,
   },
   bottomGradient: {
     position: 'absolute',

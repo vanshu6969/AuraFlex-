@@ -15,6 +15,12 @@ export interface MediaItem {
   episodes_count?: number;
   origin_country?: string[];
   original_language?: string;
+  season?: number;
+  episode?: number;
+  episode_title?: string;
+  still_path?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface WatchProgress {
