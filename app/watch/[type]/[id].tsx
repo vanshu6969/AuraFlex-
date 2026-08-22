@@ -5,7 +5,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MobilePlayer } from '../../../components/MobilePlayer';
 import { MobileMediaGrid } from '../../../components/MobileMediaGrid';
-import { MOCK_MEDIA_ITEMS } from '../../../lib/mediaData';
+import { MOCK_MEDIA_ITEMS, isKdramaOrCdrama, isPunjabiMedia, isAnimeMedia } from '../../../lib/mediaData';
 import { tmdbService } from '../../../lib/tmdb';
 import { getAnimeDetails } from '../../../lib/anilist';
 import { streamOverrideService } from '../../../lib/streamOverrides';
@@ -99,10 +99,37 @@ export default function WatchScreen() {
 
     fetchMetadata();
 
-    tmdbService.getTrending().then((trending) => {
-      setRecommended(trending.filter((m) => String(m.id) !== String(mediaId)));
-    });
-  }, [mediaId, mediaType, parsedSeason, parsedEpisode]);
+    const fetchCategoryRecommendations = async () => {
+      try {
+        let items: MediaItem[] = [];
+        if (isPunjabiMedia(activeMedia)) {
+          items = await tmdbService.getCategoryItems('punjabi', 1);
+        } else if (isAnimeMedia(activeMedia)) {
+          items = await tmdbService.getCategoryItems('anime', 1);
+        } else if (isKdramaOrCdrama(activeMedia)) {
+          items = await tmdbService.getCategoryItems('kdrama', 1);
+        } else if (activeMedia.genres?.some((g) => g.toLowerCase().includes('marvel') || g.toLowerCase().includes('dc'))) {
+          items = await tmdbService.getCategoryItems('marvel', 1);
+        } else if (activeMedia.media_type === 'tv') {
+          items = await tmdbService.getTopTVShows();
+        } else if (activeMedia.genres && activeMedia.genres.length > 0) {
+          const primaryGenre = activeMedia.genres[0].toLowerCase();
+          items = await tmdbService.getCategoryItems(primaryGenre, 1);
+        }
+
+        if (!items || items.length === 0) {
+          items = await tmdbService.getTrending();
+        }
+
+        setRecommended(items.filter((m) => String(m.id) !== String(mediaId)));
+      } catch {
+        const trending = await tmdbService.getTrending();
+        setRecommended(trending.filter((m) => String(m.id) !== String(mediaId)));
+      }
+    };
+
+    fetchCategoryRecommendations();
+  }, [mediaId, mediaType, parsedSeason, parsedEpisode, activeMedia.id, activeMedia.genres, activeMedia.original_language]);
 
   const handleBack = () => {
     if (router.canGoBack()) {

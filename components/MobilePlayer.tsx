@@ -332,6 +332,28 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Instantly pause and clean up any playing background video/iframe when switching movies
+  useEffect(() => {
+    return () => {
+      if (Platform.OS === 'web' && typeof document !== 'undefined') {
+        try {
+          const videos = document.querySelectorAll('video');
+          videos.forEach((v) => {
+            v.pause();
+            v.removeAttribute('src');
+            v.load();
+          });
+          const iframes = document.querySelectorAll('iframe');
+          iframes.forEach((f) => {
+            if (f.src && f.src !== 'about:blank') {
+              f.src = 'about:blank';
+            }
+          });
+        } catch (e) {}
+      }
+    };
+  }, [media.id]);
+
 
 
   useEffect(() => {
