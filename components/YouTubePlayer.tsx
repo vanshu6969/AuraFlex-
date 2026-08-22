@@ -284,33 +284,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
             </View>
           )}
 
-          {/* Bottom Action Controls */}
-          <View style={styles.bottomControlBar}>
-            {onSwitchServer && (
-              <TouchableOpacity onPress={onSwitchServer} style={styles.controlBtn}>
-                <Ionicons name="swap-horizontal" size={16} color="#38bdf8" />
-                <Text style={styles.controlBtnText}>Switch Server</Text>
-              </TouchableOpacity>
-            )}
-
-            <TouchableOpacity
-              onPress={() =>
-                openYouTubeSearch(
-                  `${media.title} full ${media.media_type === 'tv' ? `S${season}E${episode}` : 'movie'}`
-                )
-              }
-              style={styles.controlBtn}
-            >
-              <Ionicons name="search" size={16} color="#a855f7" />
-              <Text style={styles.controlBtnText}>Search Stream</Text>
-            </TouchableOpacity>
-
-
-            <TouchableOpacity onPress={() => setShowDrawer(true)} style={styles.controlBtn}>
-              <Ionicons name="create-outline" size={16} color="#10b981" />
-              <Text style={styles.controlBtnText}>Custom Link</Text>
-            </TouchableOpacity>
-          </View>
+          {/* YouTube Video Player Embed */}
         </View>
       ) : null}
 
