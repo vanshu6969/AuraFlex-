@@ -191,3 +191,30 @@ export async function sendTelegramMessageToChat(
   }
 }
 
+export async function answerTelegramCallbackQuery(
+  callbackQueryId: string,
+  text?: string
+): Promise<{ success: boolean; result?: any; error?: string }> {
+  try {
+    const payload = {
+      callback_query_id: callbackQueryId,
+      text: text || '',
+    };
+
+    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    return { success: data.ok, result: data.result };
+  } catch (error: any) {
+    console.error('[Telegram answerCallbackQuery Exception]', error);
+    return { success: false, error: error.message || 'Network error' };
+  }
+}
+
+

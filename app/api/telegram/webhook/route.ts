@@ -1,4 +1,8 @@
-import { sendTelegramMessageToChat, sendTelegramPhotoToChat } from '../../../../lib/telegram';
+import {
+  sendTelegramMessageToChat,
+  sendTelegramPhotoToChat,
+  answerTelegramCallbackQuery,
+} from '../../../../lib/telegram';
 
 const TMDB_API_KEY = process.env.EXPO_PUBLIC_TMDB_API_KEY || '5f85fd51bf4325e76cad21aadfe1ecc6';
 const TMDB_BASE_URL = process.env.EXPO_PUBLIC_TMDB_BASE_URL || 'https://api.themoviedb.org/3';
@@ -46,6 +50,7 @@ export async function GET() {
     instructions: `To register this webhook with Telegram Bot API, visit: https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook?url=${SITE_URL}/api/telegram/webhook`,
   });
 }
+
 // Helper to check channel membership via Telegram getChatMember API
 async function isUserChannelMember(userId: number | string): Promise<boolean> {
   try {
@@ -70,7 +75,7 @@ async function isUserChannelMember(userId: number | string): Promise<boolean> {
   }
 }
 
-// POST handler for incoming Telegram Bot Updates
+// POST handler for incoming Telegram Bot Updates (Text Messages & Callback Button Clicks)
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => null);
@@ -78,7 +83,107 @@ export async function POST(request: Request) {
       return Response.json({ ok: true, message: 'Invalid payload' });
     }
 
-    // Extract message object from Update (message, edited_message, or channel_post)
+    // ----------------------------------------------------
+    // 1. HANDLE BUTTON SELECTION CALLBACK QUERIES
+    // ----------------------------------------------------
+    if (body.callback_query) {
+      const cb = body.callback_query;
+      const callbackId = cb.id;
+      const chatId = cb.message?.chat?.id;
+      const callbackData = (cb.data || '').trim();
+
+      // Immediately acknowledge callback query to stop button loading spinner
+      await answerTelegramCallbackQuery(callbackId);
+
+      if (chatId && callbackData.startsWith('select_')) {
+        const parts = callbackData.split('_');
+        const rawType = parts[1];
+        const tmdbId = parts[2];
+        const mediaType = rawType === 'tv' ? 'tv' : 'movie';
+
+        if (tmdbId) {
+          // Fetch detailed movie/TV info from TMDB API
+          const tmdbRes = await fetch(
+            `${TMDB_BASE_URL}/${mediaType}/${tmdbId}?api_key=${TMDB_API_KEY}&language=en-US`
+          );
+
+          if (tmdbRes.ok) {
+            const raw = await tmdbRes.json();
+            const title = raw.title || raw.name || raw.original_title || raw.original_name || 'Untitled';
+            const year = (raw.release_date || raw.first_air_date || '').substring(0, 4);
+            const rating = raw.vote_average ? raw.vote_average.toFixed(1) : '8.5';
+            const posterPath = raw.poster_path ? `${IMAGE_BASE_URL}/w500${raw.poster_path}` : null;
+            const genres = raw.genres ? raw.genres.map((g: any) => g.name) : ['Action', 'Drama'];
+            const genresText = genres.length > 0 ? genres.join(', ') : 'Action, Drama';
+
+            const synopsis = raw.overview
+              ? raw.overview.length > 200
+                ? raw.overview.substring(0, 200) + '...'
+                : raw.overview
+              : 'Stream and download full HD release with high-speed direct links on AuraFlex Movies.';
+
+            const watchUrl = `${SITE_URL}/watch/${mediaType}/${tmdbId}`;
+
+            const caption = `🎬 <b>${escapeHtml(title)}${year ? ` (${year})` : ''}</b>
+
+📊 <b>Rating:</b> ⭐ ${rating}/10 IMDb
+🏷️ <b>Genres:</b> ${genresText}
+
+📝 <b>Synopsis:</b>
+<i>${escapeHtml(synopsis)}</i>
+
+⚡ <b>Zero Popups • 1-Click Fast Stream & Direct Download</b>
+🌐 <b>Watch Online:</b> <a href="${watchUrl}">${SITE_URL}</a>
+
+💡 <i>Tip: Tap 3 dots (⋮) in top right ➔ 'Open in Chrome' for uninterrupted 1080p streaming.</i>`;
+
+            const inlineKeyboard = {
+              inline_keyboard: [
+                [
+                  {
+                    text: '▶️ Watch Full Movie (1080p HD)',
+                    url: watchUrl,
+                  },
+                ],
+                [
+                  {
+                    text: '📥 Direct 1-Click Download',
+                    url: watchUrl,
+                  },
+                ],
+                [
+                  {
+                    text: '🌐 Visit Website',
+                    url: SITE_URL,
+                  },
+                  {
+                    text: '📢 Telegram Channel',
+                    url: TELEGRAM_CHANNEL_LINK,
+                  },
+                ],
+              ],
+            };
+
+            if (posterPath) {
+              const photoRes = await sendTelegramPhotoToChat(chatId, posterPath, caption, inlineKeyboard);
+              if (!photoRes.success) {
+                await sendTelegramMessageToChat(chatId, caption, inlineKeyboard);
+              }
+            } else {
+              await sendTelegramMessageToChat(chatId, caption, inlineKeyboard);
+            }
+
+            return Response.json({ ok: true, action: 'callback_item_sent' });
+          }
+        }
+      }
+
+      return Response.json({ ok: true, action: 'callback_handled' });
+    }
+
+    // ----------------------------------------------------
+    // 2. HANDLE SEARCH TEXT UPDATES & COMMANDS
+    // ----------------------------------------------------
     const msg = body.message || body.edited_message || body.channel_post;
     if (!msg || !msg.chat) {
       return Response.json({ ok: true, message: 'No chat object found' });
@@ -97,10 +202,10 @@ export async function POST(request: Request) {
     if (/^\/(start|help)(\b|@)/i.test(rawText)) {
       const welcomeText = `🎬 <b>Welcome to AuraFlex Movies Search Bot!</b>
 
-Send me any Movie or TV Show title (e.g. <code>Stree 2</code> or <code>/find Inception</code>) to get instant 1080p streaming links.
+Send me any Movie or TV Show title (e.g. <code>Stree 2</code> or <code>Spiderman</code>) to get instant 1080p streaming links.
 
 <b>How to search:</b>
-• Direct message: Type <code>Movie Name</code> (e.g. <i>Stree 2</i>)
+• Direct message: Type <code>Movie Name</code> (e.g. <i>Spiderman</i>)
 • Group chat: Type <code>/find Movie Name</code> (e.g. <i>/find Oppenheimer</i>)
 • <code>/help</code> - Show search instructions
 
@@ -125,29 +230,26 @@ Send me any Movie or TV Show title (e.g. <code>Stree 2</code> or <code>/find Inc
       return Response.json({ ok: true, action: 'welcome' });
     }
 
-    // Ignore administrative non-search commands (e.g. /broadcast, /settings, /admin)
+    // Ignore administrative non-search commands
     if (/^\/(broadcast|admin|settings|config|status|ping)(\b|@)/i.test(rawText)) {
       return Response.json({ ok: true, action: 'ignored_admin_cmd' });
     }
 
-    // Extract search query string
     let searchQuery = rawText;
 
-    // Strip leading /find, /search, /movie, /tv command prefixes (e.g. "/find Stree 2", "/find@BotName Stree 2")
+    // Strip leading /find, /search, /movie, /tv command prefixes
     const commandMatch = searchQuery.match(/^\/(find|search|movie|tv|query)(?:@[a-zA-Z0-9_]+)?\s+(.+)/i);
     if (commandMatch && commandMatch[2]) {
       searchQuery = commandMatch[2].trim();
     } else if (searchQuery.startsWith('/')) {
-      // If it's a command like "/find" without arguments or unknown command
       searchQuery = searchQuery.replace(/^\/[a-zA-Z0-9_]+(?:@[a-zA-Z0-9_]+)?\s*/, '').trim();
     }
 
-    // If no search query remains after stripping commands, prompt the user
     if (!searchQuery || searchQuery.length < 2) {
       if (isPrivateChat) {
         await sendTelegramMessageToChat(
           chatId,
-          `🔍 Please enter a movie or TV show title to search (e.g. <code>Stree 2</code> or <code>/find Inception</code>).`
+          `🔍 Please enter a movie or TV show title to search (e.g. <code>Spiderman</code> or <code>/find Inception</code>).`
         );
       }
       return Response.json({ ok: true, message: 'Query too short' });
@@ -167,12 +269,8 @@ To search and stream movies on AuraFlex Movies, you must join our official Teleg
 
         const joinKeyboard = {
           inline_keyboard: [
-            [
-              { text: '📢 Join Official Channel', url: TELEGRAM_CHANNEL_LINK },
-            ],
-            [
-              { text: '🌐 Visit AuraFlex Website', url: SITE_URL },
-            ],
+            [{ text: '📢 Join Official Channel', url: TELEGRAM_CHANNEL_LINK }],
+            [{ text: '🌐 Visit AuraFlex Website', url: SITE_URL }],
           ],
         };
 
@@ -180,7 +278,6 @@ To search and stream movies on AuraFlex Movies, you must join our official Teleg
         return Response.json({ ok: true, action: 'force_join_required' });
       }
     }
-
 
     // Fetch matching media items from TMDB API
     const tmdbRes = await fetch(
@@ -209,25 +306,20 @@ To search and stream movies on AuraFlex Movies, you must join our official Teleg
         (item.title || item.name || item.original_title || item.original_name)
     );
 
-    // Pick top 1 to 3 results
-    const topResults = validResults.slice(0, 3);
+    // Get top 5 results for choice selection
+    const topResults = validResults.slice(0, 5);
 
+    // 0 Matches
     if (topResults.length === 0) {
-      const fallbackText = `❌ No stream found for '<b>${escapeHtml(
+      const fallbackText = `❌ No stream found for "<b>${escapeHtml(
         searchQuery
-      )}</b>'.\n\nJoin <a href="${TELEGRAM_CHANNEL_LINK}">${TELEGRAM_CHANNEL_HANDLE}</a> to request it!`;
+      )}</b>".\n\nJoin <a href="${TELEGRAM_CHANNEL_LINK}">${TELEGRAM_CHANNEL_HANDLE}</a> to request it!`;
 
       const fallbackKeyboard = {
         inline_keyboard: [
           [
-            {
-              text: '💬 Request on Telegram Channel',
-              url: TELEGRAM_CHANNEL_LINK,
-            },
-            {
-              text: '🌐 Search on Website',
-              url: `${SITE_URL}/search?q=${encodeURIComponent(searchQuery)}`,
-            },
+            { text: '💬 Request on Telegram Channel', url: TELEGRAM_CHANNEL_LINK },
+            { text: '🌐 Search on Website', url: `${SITE_URL}/search?q=${encodeURIComponent(searchQuery)}` },
           ],
         ],
       };
@@ -236,8 +328,9 @@ To search and stream movies on AuraFlex Movies, you must join our official Teleg
       return Response.json({ ok: true, action: 'no_results' });
     }
 
-    // Send results (top 1-3 items) to the user / group chat
-    for (const item of topResults) {
+    // 1 Exact Match: Send Movie Card directly
+    if (topResults.length === 1) {
+      const item = topResults[0];
       const mediaType = item.media_type === 'tv' ? 'tv' : 'movie';
       const tmdbId = item.id;
       const title = item.title || item.name || item.original_title || item.original_name || 'Untitled';
@@ -250,8 +343,8 @@ To search and stream movies on AuraFlex Movies, you must join our official Teleg
       const genresText = genres.length > 0 ? genres.join(', ') : 'Action, Drama';
 
       const synopsis = item.overview
-        ? item.overview.length > 180
-          ? item.overview.substring(0, 180) + '...'
+        ? item.overview.length > 200
+          ? item.overview.substring(0, 200) + '...'
           : item.overview
         : 'Stream and download full HD release with high-speed direct links on AuraFlex Movies.';
 
@@ -266,20 +359,28 @@ To search and stream movies on AuraFlex Movies, you must join our official Teleg
 <i>${escapeHtml(synopsis)}</i>
 
 ⚡ <b>Zero Popups • 1-Click Fast Stream & Direct Download</b>
-🌐 <b>Watch Online:</b> <a href="${watchUrl}">${SITE_URL}</a>`;
+🌐 <b>Watch Online:</b> <a href="${watchUrl}">${SITE_URL}</a>
+
+💡 <i>Tip: Tap 3 dots (⋮) in top right ➔ 'Open in Chrome' for uninterrupted 1080p streaming.</i>`;
 
       const inlineKeyboard = {
         inline_keyboard: [
           [
             {
-              text: '▶️ Watch Full Movie in 1080p HD',
+              text: '▶️ Watch Full Movie (1080p HD)',
               url: watchUrl,
             },
           ],
           [
             {
-              text: '⚡ Open in Chrome / Browser',
+              text: '📥 Direct 1-Click Download',
               url: watchUrl,
+            },
+          ],
+          [
+            {
+              text: '🌐 Visit Website',
+              url: SITE_URL,
             },
             {
               text: '📢 Telegram Channel',
@@ -290,27 +391,49 @@ To search and stream movies on AuraFlex Movies, you must join our official Teleg
       };
 
       if (posterPath) {
-        const photoRes = await sendTelegramPhotoToChat(chatId, posterPath, caption, inlineKeyboard);
-        if (!photoRes.success) {
-          // Fallback to text message if photo sending fails
-          await sendTelegramMessageToChat(chatId, caption, inlineKeyboard);
-        }
+        await sendTelegramPhotoToChat(chatId, posterPath, caption, inlineKeyboard);
       } else {
         await sendTelegramMessageToChat(chatId, caption, inlineKeyboard);
       }
+
+      return Response.json({ ok: true, action: 'single_match_sent' });
     }
 
-    return Response.json({ ok: true, count: topResults.length });
+    // Multiple Matches (2 to 5 results): Send Single Selection List with Inline Buttons
+    const listText = `🔍 Found <b>${topResults.length}</b> results for "<b>${escapeHtml(
+      searchQuery
+    )}</b>". Select your movie/show below:`;
+
+    const buttonRows = topResults.map((item: any) => {
+      const title = item.title || item.name || item.original_title || item.original_name || 'Untitled';
+      const year = (item.release_date || item.first_air_date || '').substring(0, 4);
+      const rating = item.vote_average ? item.vote_average.toFixed(1) : '8.5';
+      const typeTag = item.media_type === 'tv' ? 'TV' : 'Movie';
+      const yearStr = year ? ` (${year})` : '';
+
+      return [
+        {
+          text: `🎬 ${title}${yearStr} • ⭐ ${rating} [${typeTag}]`,
+          callback_data: `select_${item.media_type || 'movie'}_${item.id}`,
+        },
+      ];
+    });
+
+    const selectionKeyboard = {
+      inline_keyboard: buttonRows,
+    };
+
+    await sendTelegramMessageToChat(chatId, listText, selectionKeyboard);
+    return Response.json({ ok: true, action: 'selection_list_sent', count: topResults.length });
   } catch (error: any) {
     console.error('[Telegram Webhook Error]', error);
-    // Always return HTTP 200 to prevent Telegram from repeating failed webhook calls
     return Response.json({ ok: true, error: error?.message || 'Server error' });
   }
 }
 
 // Utility function to escape HTML special characters for Telegram HTML parse mode
 function escapeHtml(str: string): string {
-  return str
+  return String(str || '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
