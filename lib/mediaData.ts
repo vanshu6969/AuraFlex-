@@ -115,9 +115,9 @@ export const EMBED_SERVERS: EmbedServer[] = [
     name: 'English',
     badge: 'English Server',
     getUrl: (type, id, season = 1, episode = 1) =>
-      type === 'anime' || type === 'tv'
-        ? `https://embedmaster.link/tv/${id}/${season}/${episode}?${SUB_FLAGS}`
-        : `https://embedmaster.link/movie/${id}?${SUB_FLAGS}`,
+      type === 'tv' || type === 'anime'
+        ? `https://vidsrc.icu/embed/tv/${id}/${season}/${episode}`
+        : `https://vidsrc.icu/embed/movie/${id}`,
   },
   {
     id: 'flmu',
@@ -134,8 +134,8 @@ export const EMBED_SERVERS: EmbedServer[] = [
     badge: 'Anime Server (HD)',
     getUrl: (type, id, season = 1, episode = 1) =>
       type === 'movie'
-        ? `https://player.videasy.net/movie/${id}?${SUB_FLAGS}`
-        : `https://player.videasy.net/tv/${id}/${season}/${episode}?${SUB_FLAGS}`,
+        ? `https://vidsrc.icu/embed/movie/${id}`
+        : `https://vidsrc.icu/embed/tv/${id}/${season}/${episode}`,
   },
   {
     id: 'nontongo',

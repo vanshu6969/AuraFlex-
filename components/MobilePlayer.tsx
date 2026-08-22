@@ -90,23 +90,41 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
     });
   }, [media.id]);
 
+  const [streamtapeMp4Url, setStreamtapeMp4Url] = useState<string | null>(null);
+  const [streamtapeIframeUrl, setStreamtapeIframeUrl] = useState<string | null>(null);
+  const [resolvingStreamtape, setResolvingStreamtape] = useState(false);
+
   useEffect(() => {
     if (activeServerId === 'custom_streamtape' && customOverride?.streamtape_url) {
       let isMounted = true;
       setResolvingStreamtape(true);
+      setStreamtapeMp4Url(null);
+      setStreamtapeIframeUrl(null);
 
       const rawUrl = customOverride.streamtape_url.trim();
       const match = String(rawUrl).match(/(?:\/e\/|\/v\/|file=)([a-zA-Z0-9_-]+)/);
       const fileId = match ? match[1] : rawUrl;
+      const fallbackEmbed = `https://streamtape.to/e/${fileId}`;
 
       const warmUpAndResolve = async () => {
+        let isDirectSuccess = false;
         try {
-          await fetch(getApiUrl(`/api/streamtape?file=${encodeURIComponent(fileId)}&json=1`));
+          const res = await fetch(getApiUrl(`/api/streamtape?file=${encodeURIComponent(fileId)}&json=1`));
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.streamUrl) {
+              isDirectSuccess = true;
+            }
+          }
         } catch (e) {}
 
         if (isMounted) {
-          const proxyUrl = getApiUrl(`/api/streamtape?file=${encodeURIComponent(fileId)}`);
-          setStreamtapeMp4Url(proxyUrl);
+          if (isDirectSuccess) {
+            const proxyUrl = getApiUrl(`/api/streamtape?file=${encodeURIComponent(fileId)}`);
+            setStreamtapeMp4Url(proxyUrl);
+          } else {
+            setStreamtapeIframeUrl(fallbackEmbed);
+          }
           setResolvingStreamtape(false);
         }
       };
@@ -118,6 +136,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
       };
     } else {
       setStreamtapeMp4Url(null);
+      setStreamtapeIframeUrl(null);
       setResolvingStreamtape(false);
     }
   }, [activeServerId, customOverride?.streamtape_url]);
@@ -693,13 +712,13 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
                 isSeries={isSeries}
                 onSwitchServer={triggerAutoFallback}
               />
-            ) : activeServerId === 'custom_streamtape' && (resolvingStreamtape || streamtapeMp4Url) ? (
+            ) : activeServerId === 'custom_streamtape' && (resolvingStreamtape || streamtapeMp4Url || streamtapeIframeUrl) ? (
               <>
                 {resolvingStreamtape ? (
                   <View style={styles.loadingOverlay}>
                     <ActivityIndicator size="large" color="#10b981" />
                     <Text style={[styles.loadingText, { color: '#10b981', fontWeight: '800', marginTop: 8 }]}>
-                      Connecting to Aura V1 HD Stream...
+                      Connecting to Aura V1 StreamTape HD...
                     </Text>
                     <Text style={{ color: '#9ca3af', fontSize: 11, textAlign: 'center', paddingHorizontal: 20 }}>
                       Resolving direct high-speed 1080p stream (Bypassing ISP restrictions)...
@@ -731,6 +750,30 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
                       javaScriptEnabled
                       domStorageEnabled
                       allowsInlineMediaPlayback
+                    />
+                  )
+                ) : streamtapeIframeUrl ? (
+                  Platform.OS === 'web' ? (
+                    <iframe
+                      key={streamtapeIframeUrl}
+                      src={streamtapeIframeUrl}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        border: 'none',
+                        backgroundColor: '#000',
+                      }}
+                      allowFullScreen={true}
+                      allow="autoplay; fullscreen; picture-in-picture"
+                    />
+                  ) : (
+                    <WebView
+                      key={streamtapeIframeUrl}
+                      source={{ uri: streamtapeIframeUrl }}
+                      style={styles.webview}
+                      allowsFullscreenVideo
+                      javaScriptEnabled
+                      domStorageEnabled
                     />
                   )
                 ) : null}

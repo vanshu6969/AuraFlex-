@@ -56,7 +56,7 @@ export default async function handler(req, res) {
       const ticketData = await ticketRes.json();
 
       if (ticketData.status !== 200 || !ticketData.result?.ticket) {
-        return res.status(400).json({
+        return res.status(200).json({
           success: false,
           error: ticketData.msg || 'Failed to generate download ticket from StreamTape',
         });
@@ -75,7 +75,7 @@ export default async function handler(req, res) {
       const dlData = await dlRes.json();
 
       if (dlData.status !== 200 || !dlData.result?.url) {
-        return res.status(400).json({
+        return res.status(200).json({
           success: false,
           error: dlData.msg || 'Failed to retrieve direct stream URL from StreamTape',
         });

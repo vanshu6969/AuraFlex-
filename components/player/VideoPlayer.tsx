@@ -30,11 +30,11 @@ export const SERVERS: ServerOption[] = [
   {
     id: 'embedmaster',
     name: 'English',
-    badge: 'Server 2 (Fast Mirror)',
+    badge: 'Server 2 (English HD)',
     getUrl: (type, id, season = 1, episode = 1) =>
       type === 'tv' || type === 'anime'
-        ? `https://embedmaster.link/tv/${id}/${season}/${episode}?${SUB_FLAGS}`
-        : `https://embedmaster.link/movie/${id}?${SUB_FLAGS}`,
+        ? `https://vidsrc.icu/embed/tv/${id}/${season}/${episode}`
+        : `https://vidsrc.icu/embed/movie/${id}`,
   },
   {
     id: 'flmu',
@@ -48,11 +48,11 @@ export const SERVERS: ServerOption[] = [
   {
     id: 'anime',
     name: 'Anime',
-    badge: 'Anime Server',
-    getUrl: (type, id, season = 1, episode = 1, anilistId?: number | null) =>
-      anilistId
-        ? `https://embed.filmu.in/anime/${anilistId}/${episode}?${SUB_FLAGS}`
-        : `https://embed.filmu.in/tv/${id}/${season}/${episode}?${SUB_FLAGS}`,
+    badge: 'Anime Server (HD)',
+    getUrl: (type, id, season = 1, episode = 1) =>
+      type === 'movie'
+        ? `https://vidsrc.icu/embed/movie/${id}`
+        : `https://vidsrc.icu/embed/tv/${id}/${season}/${episode}`,
   },
   {
     id: 'nontongo',
