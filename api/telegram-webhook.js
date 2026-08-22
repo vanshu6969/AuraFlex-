@@ -95,6 +95,28 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
+async function isUserChannelMember(userId) {
+  try {
+    if (!userId) return true;
+    const channelId = TELEGRAM_CHANNEL_HANDLE || '@AuraFlexmovies';
+    const res = await fetch(
+      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getChatMember?chat_id=${encodeURIComponent(
+        channelId
+      )}&user_id=${userId}`
+    );
+    const data = await res.json();
+    if (!data.ok) {
+      console.warn('[getChatMember warning]', data);
+      return true; // Fallback to avoid blocking user if bot is not admin in channel
+    }
+    const status = data.result?.status;
+    return ['creator', 'administrator', 'member', 'restricted'].includes(status);
+  } catch (err) {
+    console.error('[isUserChannelMember exception]', err);
+    return true;
+  }
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -130,6 +152,8 @@ export default async function handler(req, res) {
     }
 
     const chatId = msg.chat.id;
+    const userId = msg.from?.id;
+    const isPrivateChat = msg.chat.type === 'private';
     const rawText = (msg.text || msg.caption || '').trim();
 
     if (!rawText) {
@@ -151,8 +175,8 @@ Send me any Movie or TV Show title (e.g. <code>Stree 2</code> or <code>/find Inc
       const welcomeKeyboard = {
         inline_keyboard: [
           [
+            { text: '📢 Join Official Channel', url: TELEGRAM_CHANNEL_LINK },
             { text: '🌐 Visit AuraFlex Movies', url: SITE_URL },
-            { text: '📢 Official Channel', url: TELEGRAM_CHANNEL_LINK },
           ],
         ],
       };
@@ -174,13 +198,41 @@ Send me any Movie or TV Show title (e.g. <code>Stree 2</code> or <code>/find Inc
     }
 
     if (!searchQuery || searchQuery.length < 2) {
-      if (msg.chat.type === 'private') {
+      if (isPrivateChat) {
         await sendTelegramMessage(
           chatId,
           `🔍 Please enter a movie or TV show title to search (e.g. <code>Stree 2</code> or <code>/find Inception</code>).`
         );
       }
       return res.status(200).json({ ok: true, message: 'Query too short' });
+    }
+
+    // Force-Join Check for DM / Private Chats
+    if (isPrivateChat && userId) {
+      const isMember = await isUserChannelMember(userId);
+      if (!isMember) {
+        const joinNotice = `🔒 <b>Channel Membership Required</b>
+
+To search and stream movies on AuraFlex Movies, you must join our official Telegram channel first!
+
+1️⃣ Click <b>"📢 Join Official Channel"</b> below.
+2️⃣ Click <b>Join</b> in <b>${TELEGRAM_CHANNEL_HANDLE}</b>.
+3️⃣ Resend your movie title (e.g., <code>${escapeHtml(searchQuery)}</code>) to get instant streaming links!`;
+
+        const joinKeyboard = {
+          inline_keyboard: [
+            [
+              { text: '📢 Join Official Channel', url: TELEGRAM_CHANNEL_LINK },
+            ],
+            [
+              { text: '🌐 Visit AuraFlex Website', url: SITE_URL },
+            ],
+          ],
+        };
+
+        await sendTelegramMessage(chatId, joinNotice, joinKeyboard);
+        return res.status(200).json({ ok: true, action: 'force_join_required' });
+      }
     }
 
     const tmdbRes = await fetch(
