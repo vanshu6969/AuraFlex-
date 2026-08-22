@@ -610,8 +610,8 @@ export const tmdbService = {
       // Perform custom sorting
       if (sortBy === 'release_asc') {
         if (catLower === 'marvel') {
-          // MCU release order starts cleanly with Iron Man (2008)
-          items = items.filter((i) => (i.year || 0) >= 2008);
+          // Include modern & classic Marvel movies (1995+)
+          items = items.filter((i) => (i.year || 0) >= 1995);
         }
         items.sort((a, b) => (a.year || 9999) - (b.year || 9999));
       } else if (sortBy === 'release_desc') {
