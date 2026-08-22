@@ -3,7 +3,7 @@ import React from 'react';
 import WatchScreen from '../[id]';
 
 interface Props {
-  params: { type: string; id: string };
+  params?: { type?: string; id?: string };
   searchParams?: { season?: string; episode?: string };
 }
 
@@ -11,8 +11,8 @@ const TMDB_API_KEY = process.env.EXPO_PUBLIC_TMDB_API_KEY || '5f85fd51bf4325e76c
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const siteUrl = 'https://auraflexmovies.vercel.app';
-  const mediaId = params.id;
-  const mediaType = params.type === 'tv' || params.type === 'anime' ? 'tv' : 'movie';
+  const mediaId = params?.id || '550';
+  const mediaType = params?.type === 'tv' || params?.type === 'anime' ? 'tv' : 'movie';
 
   try {
     const res = await fetch(`https://api.themoviedb.org/3/${mediaType}/${mediaId}?api_key=${TMDB_API_KEY}&language=en-US`, {
@@ -88,8 +88,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 }
 
 export default async function WatchTypePage({ params }: Props) {
-  const mediaId = params.id;
-  const mediaType = params.type === 'tv' || params.type === 'anime' ? 'tv' : 'movie';
+  const mediaId = params?.id || '550';
+  const mediaType = params?.type === 'tv' || params?.type === 'anime' ? 'tv' : 'movie';
   let movie: any = null;
 
   try {
