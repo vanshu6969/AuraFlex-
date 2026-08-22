@@ -389,7 +389,7 @@ export default function AdminStreamOverridesScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={20} color="#ffffff" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Enterprise Admin Panel</Text>
+          <Text style={styles.headerTitle}>Admin Panel</Text>
           <View style={styles.adminBadge}>
             <Text style={styles.adminBadgeText}>ADMIN VERIFIED</Text>
           </View>
