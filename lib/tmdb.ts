@@ -293,17 +293,19 @@ export const tmdbService = {
     }
   },
 
-  async getRecentlyAdded(): Promise<MediaItem[]> {
+  async getRecentlyAdded(page: number = 1): Promise<MediaItem[]> {
     try {
       let supabaseItems: MediaItem[] = [];
 
-      // 1. Fetch recently updated stream overrides from Supabase
+      // 1. Fetch recently updated stream overrides from Supabase (paginated range)
       try {
+        const fromIndex = (page - 1) * 15;
+        const toIndex = page * 15 - 1;
         const { data: overrides } = await supabase
           .from('stream_overrides')
           .select('*')
           .order('updated_at', { ascending: false })
-          .limit(20);
+          .range(fromIndex, toIndex);
 
         if (overrides && overrides.length > 0) {
           for (const item of overrides) {
@@ -348,13 +350,13 @@ export const tmdbService = {
         console.warn('[getRecentlyAdded] Supabase query notice:', e);
       }
 
-      // 2. Fetch recent TV episode releases from TMDB
+      // 2. Fetch recent TV episode releases from TMDB (page parameter)
       let tvEpisodeItems: MediaItem[] = [];
       try {
-        const tvRes = await fetch(`${TMDB_BASE_URL}/tv/on_the_air?api_key=${TMDB_API_KEY}&language=en-US&page=1`);
+        const tvRes = await fetch(`${TMDB_BASE_URL}/tv/on_the_air?api_key=${TMDB_API_KEY}&language=en-US&page=${page}`);
         if (tvRes.ok) {
           const tvData = await tvRes.json();
-          tvEpisodeItems = (tvData.results || []).slice(0, 10).map((raw: any) => {
+          tvEpisodeItems = (tvData.results || []).map((raw: any) => {
             const formatted = this.formatMediaItem(raw, 'tv');
             formatted.season = raw.last_episode_to_air?.season_number || 1;
             formatted.episode = raw.last_episode_to_air?.episode_number || 1;
@@ -366,13 +368,13 @@ export const tmdbService = {
         }
       } catch (e) {}
 
-      // 3. Fetch recent movie releases from TMDB
+      // 3. Fetch recent movie releases from TMDB (page parameter)
       let movieItems: MediaItem[] = [];
       try {
-        const movieRes = await fetch(`${TMDB_BASE_URL}/movie/now_playing?api_key=${TMDB_API_KEY}&language=en-US&page=1`);
+        const movieRes = await fetch(`${TMDB_BASE_URL}/movie/now_playing?api_key=${TMDB_API_KEY}&language=en-US&page=${page}`);
         if (movieRes.ok) {
           const movieData = await movieRes.json();
-          movieItems = (movieData.results || []).slice(0, 10).map((raw: any) => this.formatMediaItem(raw, 'movie'));
+          movieItems = (movieData.results || []).map((raw: any) => this.formatMediaItem(raw, 'movie'));
         }
       } catch (e) {}
 

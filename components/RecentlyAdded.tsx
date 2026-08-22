@@ -1,8 +1,9 @@
-import React from 'react';
-import { View, Text, FlatList, StyleSheet, Platform, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, StyleSheet, Platform, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MediaCard } from './MediaCard';
+import { tmdbService } from '../lib/tmdb';
 import { MediaItem } from '../types/media';
 
 export interface RecentlyAddedProps {
@@ -14,11 +15,51 @@ export interface RecentlyAddedProps {
 
 export const RecentlyAdded: React.FC<RecentlyAddedProps> = ({
   title = 'Recently Added',
-  items,
+  items: initialItems,
   variant = 'grid',
   onExplorePress,
 }) => {
-  if (!items || items.length === 0) return null;
+  const [itemList, setItemList] = useState<MediaItem[]>(initialItems || []);
+  const [page, setPage] = useState<number>(1);
+  const [loadingMore, setLoadingMore] = useState<boolean>(false);
+  const [hasMore, setHasMore] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (initialItems && initialItems.length > 0) {
+      setItemList((prev) => {
+        const seen = new Set(prev.map((i) => `${i.media_type}_${i.id}_${i.season || 0}_${i.episode || 0}`));
+        const newUnique = initialItems.filter((i) => !seen.has(`${i.media_type}_${i.id}_${i.season || 0}_${i.episode || 0}`));
+        return prev.length === 0 ? initialItems : [...prev, ...newUnique];
+      });
+    }
+  }, [initialItems]);
+
+  const loadNextPage = async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    const nextPage = page + 1;
+
+    try {
+      const nextItems = await tmdbService.getRecentlyAdded(nextPage);
+      if (!nextItems || nextItems.length === 0) {
+        setHasMore(false);
+      } else {
+        setItemList((prev) => {
+          const seen = new Set(prev.map((i) => `${i.media_type}_${i.id}_${i.season || 0}_${i.episode || 0}`));
+          const unique = nextItems.filter((i) => !seen.has(`${i.media_type}_${i.id}_${i.season || 0}_${i.episode || 0}`));
+          if (unique.length === 0) setHasMore(false);
+          return [...prev, ...unique];
+        });
+        setPage(nextPage);
+      }
+    } catch {
+      setHasMore(false);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  if (!itemList || itemList.length === 0) return null;
 
   const handleExplore = () => {
     if (onExplorePress) {
@@ -35,6 +76,9 @@ export const RecentlyAdded: React.FC<RecentlyAddedProps> = ({
         <View style={styles.headerLeft}>
           <View style={styles.redIndicator} />
           <Text style={styles.sectionTitle}>{title}</Text>
+          <View style={styles.countBadge}>
+            <Text style={styles.countBadgeText}>{itemList.length} Releases</Text>
+          </View>
         </View>
         <TouchableOpacity style={styles.exploreBtn} onPress={handleExplore} activeOpacity={0.7}>
           <Text style={styles.exploreText}>View All</Text>
@@ -47,30 +91,51 @@ export const RecentlyAdded: React.FC<RecentlyAddedProps> = ({
         <FlatList
           horizontal
           showsHorizontalScrollIndicator={false}
-          data={items}
+          data={itemList}
           keyExtractor={(item, index) => `${item.media_type}-${item.id}-${item.season || 0}-${item.episode || 0}-${index}`}
           renderItem={({ item }) => <MediaCard item={item} width={155} />}
           contentContainerStyle={styles.carouselContent}
+          onEndReached={loadNextPage}
+          onEndReachedThreshold={0.5}
         />
       ) : (
-        <View
-          style={[
-            styles.gridContainer,
-            Platform.OS === 'web' && ({
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-              gap: 16,
-            } as any),
-          ]}
-        >
-          {items.map((item, index) => (
-            <View
-              key={`${item.media_type}-${item.id}-${item.season || 0}-${item.episode || 0}-${index}`}
-              style={styles.gridWrapper}
-            >
-              <MediaCard item={item} width="100%" />
-            </View>
-          ))}
+        <View>
+          <View
+            style={[
+              styles.gridContainer,
+              Platform.OS === 'web' && ({
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+                gap: 16,
+              } as any),
+            ]}
+          >
+            {itemList.map((item, index) => (
+              <View
+                key={`${item.media_type}-${item.id}-${item.season || 0}-${item.episode || 0}-${index}`}
+                style={styles.gridWrapper}
+              >
+                <MediaCard item={item} width="100%" />
+              </View>
+            ))}
+          </View>
+
+          {/* Infinite Scroll Footer Controls */}
+          <View style={styles.loadMoreBox}>
+            {loadingMore ? (
+              <View style={styles.loadingMoreInner}>
+                <ActivityIndicator size="small" color="#e50914" />
+                <Text style={styles.loadingMoreText}>Fetching more recently added releases...</Text>
+              </View>
+            ) : hasMore ? (
+              <TouchableOpacity onPress={loadNextPage} style={styles.loadMoreBtn} activeOpacity={0.8}>
+                <Ionicons name="arrow-down-circle-outline" size={16} color="#ffffff" />
+                <Text style={styles.loadMoreBtnText}>Load More Releases (Page {page + 1})</Text>
+              </TouchableOpacity>
+            ) : (
+              <Text style={styles.endText}>You have viewed all recently added releases.</Text>
+            )}
+          </View>
         </View>
       )}
     </View>
@@ -110,6 +175,19 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: -0.3,
   },
+  countBadge: {
+    backgroundColor: 'rgba(229, 9, 20, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 9, 20, 0.3)',
+  },
+  countBadgeText: {
+    color: '#e50914',
+    fontSize: 11,
+    fontWeight: '700',
+  },
   exploreBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -136,5 +214,40 @@ const styles = StyleSheet.create({
   gridWrapper: {
     width: Platform.OS === 'web' ? '100%' : 150,
     marginBottom: 14,
+  },
+  loadMoreBox: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingMoreInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  loadingMoreText: {
+    color: '#9ca3af',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  loadMoreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingHorizontal: 22,
+    paddingVertical: 11,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
+  },
+  loadMoreBtnText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  endText: {
+    color: '#6b7280',
+    fontSize: 12,
   },
 });
