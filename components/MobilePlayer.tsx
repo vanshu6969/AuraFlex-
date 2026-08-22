@@ -94,44 +94,13 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
 
   useEffect(() => {
     if (activeServerId === 'custom_streamtape' && customOverride?.streamtape_url) {
-      let isMounted = true;
-      setResolvingStreamtape(true);
-      setStreamtapeMp4Url(null);
-      setStreamtapeIframeUrl(null);
-
       const rawUrl = customOverride.streamtape_url.trim();
       const match = String(rawUrl).match(/(?:\/e\/|\/v\/|file=)([a-zA-Z0-9_-]+)/);
       const fileId = match ? match[1] : rawUrl;
-      const fallbackEmbed = `https://streamtape.to/e/${fileId}`;
+      const embedUrl = `https://streamtape.to/e/${encodeURIComponent(fileId)}`;
 
-      const warmUpAndResolve = async () => {
-        let isDirectSuccess = false;
-        try {
-          const res = await fetch(getApiUrl(`/api/streamtape?file=${encodeURIComponent(fileId)}&json=1`));
-          if (res.ok) {
-            const data = await res.json();
-            if (data.success && data.streamUrl) {
-              isDirectSuccess = true;
-            }
-          }
-        } catch (e) {}
-
-        if (isMounted) {
-          if (isDirectSuccess) {
-            const proxyUrl = getApiUrl(`/api/streamtape?file=${encodeURIComponent(fileId)}`);
-            setStreamtapeMp4Url(proxyUrl);
-          } else {
-            setStreamtapeIframeUrl(fallbackEmbed);
-          }
-          setResolvingStreamtape(false);
-        }
-      };
-
-      warmUpAndResolve();
-
-      return () => {
-        isMounted = false;
-      };
+      setStreamtapeIframeUrl(embedUrl);
+      setResolvingStreamtape(false);
     } else {
       setStreamtapeMp4Url(null);
       setStreamtapeIframeUrl(null);
