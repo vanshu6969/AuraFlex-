@@ -43,6 +43,86 @@ const deduplicateMediaList = (items: MediaItem[]): MediaItem[] => {
   });
 };
 
+const MCU_TIMELINE_ORDER: Record<string, number> = {
+  'captain america: the first avenger': 1,
+  'captain marvel': 2,
+  'iron man': 3,
+  'iron man 2': 4,
+  'the incredible hulk': 5,
+  'thor': 6,
+  'the avengers': 7,
+  "marvel's the avengers": 7,
+  'iron man 3': 8,
+  'thor: the dark world': 9,
+  'captain america: the winter soldier': 10,
+  'guardians of the galaxy': 11,
+  'guardians of the galaxy vol. 2': 12,
+  'avengers: age of ultron': 13,
+  'ant-man': 14,
+  'captain america: civil war': 15,
+  'black widow': 16,
+  'black panther': 17,
+  'spider-man: homecoming': 18,
+  'doctor strange': 19,
+  'thor: ragnarok': 20,
+  'ant-man and the wasp': 21,
+  'avengers: infinity war': 22,
+  'avengers: endgame': 23,
+  'loki': 24,
+  'what if...?': 25,
+  'wandavision': 26,
+  'the falcon and the winter soldier': 27,
+  'spider-man: far from home': 28,
+  'shang-chi and the legend of the ten rings': 29,
+  'eternals': 30,
+  'spider-man: no way home': 31,
+  'doctor strange in the multiverse of madness': 32,
+  'hawkeye': 33,
+  'moon knight': 34,
+  'ms. marvel': 35,
+  'thor: love and thunder': 36,
+  'i am groot': 37,
+  'she-hulk: attorney at law': 38,
+  'werewolf by night': 39,
+  'black panther: wakanda forever': 40,
+  'the guardians of the galaxy holiday special': 41,
+  'ant-man and the wasp: quantumania': 42,
+  'guardians of the galaxy vol. 3': 43,
+  'secret invasion': 44,
+  'the marvels': 45,
+  'echo': 46,
+  'deadpool & wolverine': 47,
+  'agatha all along': 48,
+};
+
+const DC_TIMELINE_ORDER: Record<string, number> = {
+  'wonder woman': 1,
+  'wonder woman 1984': 2,
+  'man of steel': 3,
+  'batman v superman: dawn of justice': 4,
+  'suicide squad': 5,
+  'justice league': 6,
+  "zack snyder's justice league": 6,
+  'aquaman': 7,
+  'shazam!': 8,
+  'birds of prey': 9,
+  'the suicide squad': 10,
+  'peacemaker': 11,
+  'black adam': 12,
+  'shazam! fury of the gods': 13,
+  'the flash': 14,
+  'blue beetle': 15,
+  'aquaman and the lost kingdom': 16,
+  'batman begins': 17,
+  'the dark knight': 18,
+  'the dark knight rises': 19,
+  'the batman': 20,
+  'the penguin': 21,
+  'joker': 22,
+  'joker: folie à deux': 23,
+  'superman': 24,
+};
+
 export const tmdbService = {
   formatMediaItem(raw: any, defaultType: 'movie' | 'tv' = 'movie'): MediaItem {
     const media_type = raw.media_type || defaultType;
@@ -324,59 +404,134 @@ export const tmdbService = {
       return null;
     }
   },
+  formatMediaItem(raw: any, defaultType: 'movie' | 'tv' = 'movie'): MediaItem {
+    const media_type = raw.media_type || defaultType;
+    const title = raw.title || raw.name || raw.original_title || raw.original_name || 'Untitled';
+    
+    const poster_path = raw.poster_path
+      ? `${IMAGE_BASE_URL}/w500${raw.poster_path}`
+      : 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800&auto=format&fit=crop&q=80';
+      
+    const backdrop_path = raw.backdrop_path
+      ? `${IMAGE_BASE_URL}/w780${raw.backdrop_path}`
+      : 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1600&auto=format&fit=crop&q=80';
 
-  async getCategoryItems(categoryKey: string, page: number = 1): Promise<MediaItem[]> {
+    const genre_ids: number[] = raw.genre_ids || raw.genres?.map((g: any) => g.id) || [];
+    const genres = genre_ids.map((id) => GENRE_MAP[id]).filter(Boolean);
+
+    const yearStr = (raw.release_date || raw.first_air_date || '').substring(0, 4);
+
+    return {
+      id: raw.id,
+      title,
+      overview: raw.overview || 'Stream high quality movies & shows on AuraFlex Movies.',
+      poster_path,
+      backdrop_path,
+      media_type: media_type as 'movie' | 'tv' | 'anime',
+      vote_average: raw.vote_average ? parseFloat(raw.vote_average.toFixed(1)) : 8.5,
+      year: yearStr ? parseInt(yearStr, 10) : undefined,
+      genres: genres.length > 0 ? genres : ['Action', 'Drama'],
+      quality: '1080p Full HD',
+    };
+  },
+
+  async getCategoryItems(
+    categoryKey: string,
+    page: number = 1,
+    sortBy: string = 'popularity'
+  ): Promise<MediaItem[]> {
     try {
-      let url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&sort_by=popularity.desc&page=${page}`;
+      let rawList: any[] = [];
+      const catLower = categoryKey.toLowerCase();
 
-      switch (categoryKey.toLowerCase()) {
-        case 'marvel':
-          url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&with_companies=420&sort_by=popularity.desc&page=${page}`;
-          break;
-        case 'dc':
-          url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&with_companies=9993|128064&sort_by=popularity.desc&page=${page}`;
-          break;
-        case 'anime':
-          url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&with_genres=16&with_original_language=ja&sort_by=popularity.desc&page=${page}`;
-          break;
-        case 'kdrama':
-          url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&with_original_language=ko&with_genres=18&sort_by=popularity.desc&page=${page}`;
-          break;
-        case 'cdrama':
-          url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&with_original_language=zh&with_genres=18&sort_by=popularity.desc&page=${page}`;
-          break;
-        case 'punjabi':
-          url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&with_original_language=pa&sort_by=popularity.desc&page=${page}`;
-          break;
-        case 'bollywood':
-          url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&with_original_language=hi&sort_by=popularity.desc&page=${page}`;
-          break;
-        case 'hollywood-series':
-          url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&with_original_language=en&without_genres=16&sort_by=popularity.desc&page=${page}`;
-          break;
-        case 'indian-series':
-          url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&with_original_language=hi|pa|ta|te&sort_by=popularity.desc&page=${page}`;
-          break;
-        case 'action':
-          url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&with_genres=28,12&sort_by=popularity.desc&page=${page}`;
-          break;
-        case 'comedy':
-          url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&with_genres=35&sort_by=popularity.desc&page=${page}`;
-          break;
-        case 'horror':
-          url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&with_genres=27&sort_by=popularity.desc&page=${page}`;
-          break;
+      if (catLower === 'marvel') {
+        const [moviesRes, tvRes] = await Promise.all([
+          fetch(`${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&with_companies=420|7505|38679|19551&sort_by=popularity.desc&page=${page}`),
+          fetch(`${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&with_companies=420|7505|38679|19551&sort_by=popularity.desc&page=${page}`),
+        ]);
+        const moviesData = moviesRes.ok ? await moviesRes.json() : { results: [] };
+        const tvData = tvRes.ok ? await tvRes.json() : { results: [] };
 
-        default:
-          url = `${TMDB_BASE_URL}/trending/all/week?api_key=${TMDB_API_KEY}&language=en-US&page=${page}`;
+        const movies = (moviesData.results || []).map((i: any) => this.formatMediaItem(i, 'movie'));
+        const shows = (tvData.results || []).map((i: any) => this.formatMediaItem(i, 'tv'));
+        rawList = [...movies, ...shows];
+      } else if (catLower === 'dc') {
+        const [moviesRes, tvRes] = await Promise.all([
+          fetch(`${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&with_companies=9993|128064|429&sort_by=popularity.desc&page=${page}`),
+          fetch(`${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&with_companies=9993|128064|429&sort_by=popularity.desc&page=${page}`),
+        ]);
+        const moviesData = moviesRes.ok ? await moviesRes.json() : { results: [] };
+        const tvData = tvRes.ok ? await tvRes.json() : { results: [] };
+
+        const movies = (moviesData.results || []).map((i: any) => this.formatMediaItem(i, 'movie'));
+        const shows = (tvData.results || []).map((i: any) => this.formatMediaItem(i, 'tv'));
+        rawList = [...movies, ...shows];
+      } else {
+        let url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&sort_by=popularity.desc&page=${page}`;
+
+        switch (catLower) {
+          case 'anime':
+            url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&with_genres=16&with_original_language=ja&sort_by=popularity.desc&page=${page}`;
+            break;
+          case 'kdrama':
+            url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&with_original_language=ko&with_genres=18&sort_by=popularity.desc&page=${page}`;
+            break;
+          case 'cdrama':
+            url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&with_original_language=zh&with_genres=18&sort_by=popularity.desc&page=${page}`;
+            break;
+          case 'punjabi':
+            url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&with_original_language=pa&sort_by=popularity.desc&page=${page}`;
+            break;
+          case 'bollywood':
+            url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&with_original_language=hi&sort_by=popularity.desc&page=${page}`;
+            break;
+          case 'hollywood-series':
+            url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&with_original_language=en&without_genres=16&sort_by=popularity.desc&page=${page}`;
+            break;
+          case 'indian-series':
+            url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&with_original_language=hi|pa|ta|te&sort_by=popularity.desc&page=${page}`;
+            break;
+          case 'action':
+            url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&with_genres=28,12&sort_by=popularity.desc&page=${page}`;
+            break;
+          case 'comedy':
+            url = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=en-US&with_genres=35&sort_by=popularity.desc&page=${page}`;
+            break;
+          case 'horror':
+            url = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=en-US&with_genres=27&sort_by=popularity.desc&page=${page}`;
+            break;
+          default:
+            url = `${TMDB_BASE_URL}/trending/all/week?api_key=${TMDB_API_KEY}&language=en-US&page=${page}`;
+        }
+
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Category fetch error');
+        const data = await res.json();
+        const defaultType = ['punjabi', 'bollywood', 'action', 'horror'].includes(catLower) ? 'movie' : 'tv';
+        rawList = data.results.map((item: any) => this.formatMediaItem(item, defaultType));
       }
 
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Category fetch error');
-      const data = await res.json();
-      const defaultType = ['marvel', 'dc', 'punjabi', 'bollywood', 'action', 'horror'].includes(categoryKey) ? 'movie' : 'tv';
-      const list = data.results.map((item: any) => this.formatMediaItem(item, defaultType));
-      return deduplicateMediaList(list);
+      let items = deduplicateMediaList(rawList);
+
+      // Perform custom sorting
+      if (sortBy === 'release_asc') {
+        items.sort((a, b) => (a.year || 9999) - (b.year || 9999));
+      } else if (sortBy === 'release_desc') {
+        items.sort((a, b) => (b.year || 0) - (a.year || 0));
+      } else if (sortBy === 'watch_order') {
+        const orderMap = catLower === 'marvel' ? MCU_TIMELINE_ORDER : DC_TIMELINE_ORDER;
+        items.sort((a, b) => {
+          const titleA = (a.title || '').toLowerCase();
+          const titleB = (b.title || '').toLowerCase();
+          const orderA = orderMap[titleA] || 999;
+          const orderB = orderMap[titleB] || 999;
+
+          if (orderA !== orderB) return orderA - orderB;
+          return (a.year || 9999) - (b.year || 9999);
+        });
+      }
+
+      return items;
     } catch {
       return MOCK_MEDIA_ITEMS;
     }

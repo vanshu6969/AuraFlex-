@@ -100,6 +100,8 @@ const CATEGORY_BANNERS: Record<string, { banner: string; subtitle: string; accen
 };
 
 
+type SortMode = 'release_asc' | 'watch_order' | 'popularity' | 'release_desc';
+
 export default function CategoryExplorePage() {
   const params = useLocalSearchParams<{ category: string }>();
   const categoryId = (params.category || 'marvel').toLowerCase();
@@ -110,8 +112,11 @@ export default function CategoryExplorePage() {
     accentColor: '#e50914',
   };
 
+  const isUniverseCategory = categoryId === 'marvel' || categoryId === 'dc';
+
   const [bannerUri, setBannerUri] = useState(categoryConfig.banner);
   const [mediaTypeFilter, setMediaTypeFilter] = useState<MediaTypeFilter>('all');
+  const [sortMode, setSortMode] = useState<SortMode>(isUniverseCategory ? 'release_asc' : 'popularity');
   const [items, setItems] = useState<MediaItem[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -122,21 +127,21 @@ export default function CategoryExplorePage() {
     setBannerUri(categoryConfig.banner);
   }, [categoryId]);
 
-  // Load initial page 1
+  // Load initial page 1 on category or sort mode change
   useEffect(() => {
     setLoading(true);
     setPage(1);
     setHasMore(true);
 
     tmdbService
-      .getCategoryItems(categoryId, 1)
+      .getCategoryItems(categoryId, 1, sortMode)
       .then((data) => {
         setItems(data);
         if (data.length === 0) setHasMore(false);
       })
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
-  }, [categoryId]);
+  }, [categoryId, sortMode]);
 
   // Load next page
   const loadNextPage = () => {
@@ -145,7 +150,7 @@ export default function CategoryExplorePage() {
     const nextPage = page + 1;
 
     tmdbService
-      .getCategoryItems(categoryId, nextPage)
+      .getCategoryItems(categoryId, nextPage, sortMode)
       .then((data) => {
         if (data.length === 0) {
           setHasMore(false);
@@ -227,13 +232,82 @@ export default function CategoryExplorePage() {
         </View>
       </View>
 
+      {/* Interactive Sorting & Type Filter Controls Bar */}
+      <View style={styles.controlsContainer}>
+        {/* Sort Mode Segmented Pills */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortPillsRow}>
+          <TouchableOpacity
+            onPress={() => setSortMode('release_asc')}
+            style={[styles.sortPill, sortMode === 'release_asc' && styles.sortPillActive]}
+          >
+            <Text style={[styles.sortPillText, sortMode === 'release_asc' && styles.sortPillTextActive]}>
+              📅 Release Year (Oldest)
+            </Text>
+          </TouchableOpacity>
+
+          {isUniverseCategory && (
+            <TouchableOpacity
+              onPress={() => setSortMode('watch_order')}
+              style={[styles.sortPill, sortMode === 'watch_order' && styles.sortPillActive]}
+            >
+              <Text style={[styles.sortPillText, sortMode === 'watch_order' && styles.sortPillTextActive]}>
+                🎬 Watch Order (Timeline)
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            onPress={() => setSortMode('release_desc')}
+            style={[styles.sortPill, sortMode === 'release_desc' && styles.sortPillActive]}
+          >
+            <Text style={[styles.sortPillText, sortMode === 'release_desc' && styles.sortPillTextActive]}>
+              🗓️ Newest First
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setSortMode('popularity')}
+            style={[styles.sortPill, sortMode === 'popularity' && styles.sortPillActive]}
+          >
+            <Text style={[styles.sortPillText, sortMode === 'popularity' && styles.sortPillTextActive]}>
+              🔥 Popularity
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+
+        {/* Type Filter Tabs (All / Movies / Series) */}
+        <View style={styles.typeTabsRow}>
+          <TouchableOpacity
+            onPress={() => setMediaTypeFilter('all')}
+            style={[styles.typeTab, mediaTypeFilter === 'all' && styles.typeTabActive]}
+          >
+            <Text style={[styles.typeTabText, mediaTypeFilter === 'all' && styles.typeTabTextActive]}>
+              All ({items.length})
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setMediaTypeFilter('movie')}
+            style={[styles.typeTab, mediaTypeFilter === 'movie' && styles.typeTabActive]}
+          >
+            <Text style={[styles.typeTabText, mediaTypeFilter === 'movie' && styles.typeTabTextActive]}>
+              Movies ({items.filter((i) => i.media_type === 'movie').length})
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setMediaTypeFilter('tv')}
+            style={[styles.typeTab, mediaTypeFilter === 'tv' && styles.typeTabActive]}
+          >
+            <Text style={[styles.typeTabText, mediaTypeFilter === 'tv' && styles.typeTabTextActive]}>
+              Series ({items.filter((i) => i.media_type === 'tv' || i.media_type === 'anime').length})
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
       {/* Media Grid */}
-
       {loading ? (
         <SkeletonGrid count={12} />
       ) : filteredItems.length > 0 ? (
-
         <View>
           <MediaSection
             title={`${categoryName} (${filteredItems.length})`}
@@ -436,5 +510,62 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 12,
     fontWeight: '800',
+  },
+  controlsContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    gap: 10,
+  },
+  sortPillsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingRight: 16,
+  },
+  sortPill: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  sortPillActive: {
+    backgroundColor: '#e50914',
+    borderColor: '#e50914',
+  },
+  sortPillText: {
+    color: '#9ca3af',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  sortPillTextActive: {
+    color: '#ffffff',
+    fontWeight: '800',
+  },
+  typeTabsRow: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 12,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  typeTab: {
+    flex: 1,
+    paddingVertical: 7,
+    alignItems: 'center',
+    borderRadius: 9,
+  },
+  typeTabActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  typeTabText: {
+    color: '#9ca3af',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  typeTabTextActive: {
+    color: '#ffffff',
+    fontWeight: '700',
   },
 });
