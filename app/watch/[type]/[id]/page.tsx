@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import React from 'react';
-import WatchScreen from './index';
+import WatchScreen from '../[id]';
 
 interface Props {
   params: { type: string; id: string };
