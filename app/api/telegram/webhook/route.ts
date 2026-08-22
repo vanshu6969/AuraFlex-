@@ -46,6 +46,29 @@ export async function GET() {
     instructions: `To register this webhook with Telegram Bot API, visit: https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook?url=${SITE_URL}/api/telegram/webhook`,
   });
 }
+// Helper to check channel membership via Telegram getChatMember API
+async function isUserChannelMember(userId: number | string): Promise<boolean> {
+  try {
+    if (!userId) return true;
+    const botToken =
+      process.env.TELEGRAM_BOT_TOKEN ||
+      process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN ||
+      process.env.EXPO_PUBLIC_TELEGRAM_BOT_TOKEN ||
+      '8958801051:AAGjaBCjT4bysH0iFygBjRU-n4T2ucIldms';
+    const channelId = TELEGRAM_CHANNEL_HANDLE || '@AuraFlexmovies';
+    const res = await fetch(
+      `https://api.telegram.org/bot${botToken}/getChatMember?chat_id=${encodeURIComponent(
+        channelId
+      )}&user_id=${userId}`
+    );
+    const data = await res.json();
+    if (!data.ok) return true;
+    const status = data.result?.status;
+    return ['creator', 'administrator', 'member', 'restricted'].includes(status);
+  } catch {
+    return true;
+  }
+}
 
 // POST handler for incoming Telegram Bot Updates
 export async function POST(request: Request) {
@@ -156,25 +179,7 @@ To search and stream movies on AuraFlex Movies, you must join our official Teleg
         await sendTelegramMessageToChat(chatId, joinNotice, joinKeyboard);
         return Response.json({ ok: true, action: 'force_join_required' });
       }
-    }`;
-
-// Helper to check channel membership via Telegram getChatMember API
-async function isUserChannelMember(userId: number | string): Promise<boolean> {
-  try {
-    if (!userId) return true;
-    const botToken = process.env.TELEGRAM_BOT_TOKEN || process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN || process.env.EXPO_PUBLIC_TELEGRAM_BOT_TOKEN || '8958801051:AAGjaBCjT4bysH0iFygBjRU-n4T2ucIldms';
-    const channelId = TELEGRAM_CHANNEL_HANDLE || '@AuraFlexmovies';
-    const res = await fetch(
-      `https://api.telegram.org/bot${botToken}/getChatMember?chat_id=${encodeURIComponent(channelId)}&user_id=${userId}`
-    );
-    const data = await res.json();
-    if (!data.ok) return true;
-    const status = data.result?.status;
-    return ['creator', 'administrator', 'member', 'restricted'].includes(status);
-  } catch {
-    return true;
-  }
-}
+    }
 
 
     // Fetch matching media items from TMDB API
