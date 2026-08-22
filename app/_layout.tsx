@@ -88,6 +88,7 @@ function RootContent() {
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <StatusBar style={isLight ? 'dark' : 'light'} />
+      <InAppBrowserWarning />
       <SafeAreaView style={[styles.topSafeArea, { backgroundColor: colors.headerBg }]}>
         <View style={[styles.topHeader, { borderBottomColor: colors.border }]}>
           <TouchableOpacity onPress={() => router.replace('/')} activeOpacity={0.75} style={styles.brandRow}>

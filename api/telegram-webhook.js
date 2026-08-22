@@ -306,7 +306,9 @@ To search and stream movies on AuraFlex Movies, you must join our official Teleg
 <i>${escapeHtml(synopsis)}</i>
 
 ⚡ <b>Zero Popups • 1-Click Fast Stream & Direct Download</b>
-🌐 <b>Watch Online:</b> <a href="${watchUrl}">${SITE_URL}</a>`;
+🌐 <b>Watch Online:</b> <a href="${watchUrl}">${SITE_URL}</a>
+
+💡 <i>Tip: Tap 3 dots (⋮) in top right ➔ 'Open in Chrome' for uninterrupted 1080p streaming.</i>`;
 
       const inlineKeyboard = {
         inline_keyboard: [
