@@ -9,19 +9,27 @@ export function useAntiNewTab() {
     if (typeof window === 'undefined') return;
 
     // 1. Lock down window.open using Object.defineProperty to block popup spawns
+    const dummyWin = {
+      closed: true,
+      focus: () => {},
+      blur: () => {},
+      close: () => {},
+      postMessage: () => {},
+    };
+
     try {
       Object.defineProperty(window, 'open', {
         configurable: false,
         writable: false,
         value: function (url?: string | URL, target?: string, features?: string) {
           console.warn('[Anti-Ad Shield] Intercepted and blocked popup window.open:', url);
-          return null;
+          return dummyWin;
         },
       });
     } catch (e) {
       window.open = function () {
         console.warn('[Anti-Ad Shield] Blocked window.open popup');
-        return null;
+        return dummyWin as any;
       };
     }
 

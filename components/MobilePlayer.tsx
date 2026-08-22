@@ -69,7 +69,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
   const isAnime = isAnimeMedia(media);
   const isSeries = media.media_type === 'tv' || (media.media_type === 'anime' && (media.episodes_count || 0) > 1);
 
-  const [activeServerId, setActiveServerId] = useState(() => 'videasy');
+  const [activeServerId, setActiveServerId] = useState(() => 'vidsrc_icu');
   const [customOverride, setCustomOverride] = useState<StreamOverrideRecord | null>(null);
   const hasOverride = !!customOverride;
   const [streamtapeMp4Url, setStreamtapeMp4Url] = useState<string | null>(null);
@@ -271,7 +271,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
         } else if (isAnime) {
           setActiveServerId('anime');
         } else {
-          setActiveServerId('videasy');
+          setActiveServerId('vidsrc_icu');
         }
       } catch (e) {}
     };
@@ -524,7 +524,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
       ) : (
         <View style={styles.serverRow}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(16, 185, 129, 0.15)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.3)' }}>
-            <Ionicons name="checkmark-seal" size={16} color="#10b981" />
+            <Ionicons name="checkmark-circle" size={16} color="#10b981" />
             <Text style={{ color: '#10b981', fontSize: 12, fontWeight: '800', letterSpacing: 0.5 }}>VERIFIED EXCLUSIVE STREAM</Text>
           </View>
 
@@ -598,7 +598,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
                 const rawYt = customOverride?.youtube_url || '';
                 const match = rawYt.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
                 const ytId = match ? match[1] : /^[\w-]{11}$/.test(rawYt.trim()) ? rawYt.trim() : '';
-                const ytEmbedUrl = ytId ? `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&rel=0` : currentServer.getUrl();
+                const ytEmbedUrl = ytId ? `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&rel=0` : currentServer.getUrl(media.media_type, media.id, season, episode, anilistId);
 
                 return Platform.OS === 'web' ? (
                   <iframe
@@ -743,21 +743,6 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
 
                 {Platform.OS === 'web' ? (
                   <View style={{ flex: 1, width: '100%', height: '100%', position: 'relative' }}>
-                    {showAdShield && activeServerId !== 'custom_streamtape' && activeServerId !== 'custom_vip' && (
-                      <TouchableOpacity
-                        activeOpacity={1}
-                        onPress={handleShieldClick}
-                        style={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          zIndex: 10,
-                          backgroundColor: 'rgba(0, 0, 0, 0.01)',
-                        }}
-                      />
-                    )}
                     <iframe
                       key={embedUrl}
                       src={embedUrl}
@@ -769,7 +754,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
                       }}
                       allowFullScreen={true}
                       allow="autoplay; fullscreen; picture-in-picture; encrypted-media; accelerometer; gyroscope"
-                      referrerPolicy="no-referrer-when-downgrade"
+                      referrerPolicy="origin"
                     />
                   </View>
                 ) : (
