@@ -806,7 +806,6 @@ export default function AdminStreamOverridesScreen() {
                     <Text style={{ color: '#9ca3af', fontSize: 13, fontWeight: '700' }}>Reset Form</Text>
                   </TouchableOpacity>
                 </View>
-                </View>
               </View>
 
               {/* RIGHT COLUMN: Live Preview & Test Stream Verification (40% width on Desktop) */}
