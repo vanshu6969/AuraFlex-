@@ -15,10 +15,18 @@ import { MediaItem } from '../../../types/media';
 
 
 export default function WatchScreen() {
-  const { type, id } = useLocalSearchParams<{ type: string; id: string }>();
+  const { type, id, season: seasonQuery, episode: episodeQuery } = useLocalSearchParams<{
+    type: string;
+    id: string;
+    season?: string;
+    episode?: string;
+  }>();
+
   const rawType = (type as string) || 'movie';
   const mediaType: 'movie' | 'tv' | 'anime' = rawType === 'anime' ? 'anime' : rawType === 'tv' ? 'tv' : 'movie';
   const mediaId = id || '550';
+  const parsedSeason = seasonQuery ? parseInt(String(seasonQuery), 10) : undefined;
+  const parsedEpisode = episodeQuery ? parseInt(String(episodeQuery), 10) : undefined;
 
   const [activeMedia, setActiveMedia] = useState<MediaItem>(() => {
     const found = MOCK_MEDIA_ITEMS.find((m) => String(m.id) === String(mediaId));
@@ -100,14 +108,16 @@ export default function WatchScreen() {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Schema.org Structured Data for Google Indexing */}
+      {/* Programmatic High-Demand SEO Metadata & Schema.org Structured Data */}
       <StructuredData
         type={activeMedia.media_type === 'tv' ? 'tv' : activeMedia.media_type === 'anime' ? 'anime' : 'movie'}
         title={activeMedia.title}
-        description={activeMedia.overview || `Stream ${activeMedia.title} free in HD on AuraFlex.`}
+        description={activeMedia.overview || `Stream ${activeMedia.title} free in HD on AuraFlex Movies.`}
         image={activeMedia.poster_path}
         url={`https://auraflexmovies.vercel.app/watch/${activeMedia.media_type || 'movie'}/${activeMedia.id}`}
-        year={activeMedia.first_air_date ? activeMedia.first_air_date.split('-')[0] : '2026'}
+        year={activeMedia.year || (activeMedia.release_date ? activeMedia.release_date.split('-')[0] : activeMedia.first_air_date ? activeMedia.first_air_date.split('-')[0] : '2026')}
+        season={parsedSeason || activeMedia.season}
+        episode={parsedEpisode || activeMedia.episode}
         genres={activeMedia.genres}
         quality={activeMedia.quality || '1080p Full HD'}
         directUrl={`https://auraflexmovies.vercel.app/api/streamtape?file=${activeMedia.id}`}

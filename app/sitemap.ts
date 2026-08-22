@@ -38,6 +38,12 @@ export default async function sitemap(): Promise<SitemapEntry[]> {
       changeFrequency: 'daily',
       priority: 0.8,
     },
+    ...['marvel', 'dc', 'anime', 'kdrama', 'cdrama', 'punjabi', 'bollywood', 'hollywood-series', 'indian-series', 'action', 'comedy', 'horror'].map((cat) => ({
+      url: `${baseUrl}/explore/${cat}`,
+      lastModified,
+      changeFrequency: 'daily' as const,
+      priority: 0.85,
+    })),
     {
       url: `${baseUrl}/watchlist`,
       lastModified,
