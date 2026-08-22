@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, FlatList, StyleSheet, Platform, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,19 +23,48 @@ export const RecentlyAdded: React.FC<RecentlyAddedProps> = ({
   const [page, setPage] = useState<number>(1);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [hasMore, setHasMore] = useState<boolean>(true);
+  const isFetchingRef = useRef<boolean>(false);
 
+  // 1. Pre-fetch initial batch (pages 1 to 4) automatically on mount
   useEffect(() => {
-    if (initialItems && initialItems.length > 0) {
-      setItemList((prev) => {
-        const seen = new Set(prev.map((i) => `${i.media_type}_${i.id}_${i.season || 0}_${i.episode || 0}`));
-        const newUnique = initialItems.filter((i) => !seen.has(`${i.media_type}_${i.id}_${i.season || 0}_${i.episode || 0}`));
-        return prev.length === 0 ? initialItems : [...prev, ...newUnique];
-      });
-    }
-  }, [initialItems]);
+    let isMounted = true;
+    const loadInitialBatch = async () => {
+      try {
+        const [p1, p2, p3, p4] = await Promise.all([
+          tmdbService.getRecentlyAdded(1),
+          tmdbService.getRecentlyAdded(2),
+          tmdbService.getRecentlyAdded(3),
+          tmdbService.getRecentlyAdded(4),
+        ]);
+        if (!isMounted) return;
 
+        const combined = [...(initialItems || []), ...p1, ...p2, ...p3, ...p4];
+        const seen = new Set();
+        const unique = combined.filter((i) => {
+          const key = `${i.media_type}_${i.id}_${i.season || 0}_${i.episode || 0}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+
+        setItemList(unique);
+        setPage(4);
+      } catch (e) {
+        console.error('[RecentlyAdded] Pre-fetch batch error:', e);
+      }
+    };
+
+    loadInitialBatch();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // 2. Load next page dynamically
   const loadNextPage = async () => {
-    if (loadingMore || !hasMore) return;
+    if (isFetchingRef.current || loadingMore || !hasMore) return;
+    isFetchingRef.current = true;
     setLoadingMore(true);
     const nextPage = page + 1;
 
@@ -56,8 +85,27 @@ export const RecentlyAdded: React.FC<RecentlyAddedProps> = ({
       setHasMore(false);
     } finally {
       setLoadingMore(false);
+      isFetchingRef.current = false;
     }
   };
+
+  // 3. Automatic Infinite Scroll Listener for Web
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
+    const handleWindowScroll = () => {
+      if (isFetchingRef.current || !hasMore) return;
+      const scrollPosition = window.innerHeight + window.scrollY;
+      const scrollThreshold = document.documentElement.scrollHeight - 700;
+
+      if (scrollPosition >= scrollThreshold) {
+        loadNextPage();
+      }
+    };
+
+    window.addEventListener('scroll', handleWindowScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleWindowScroll);
+  }, [page, hasMore]);
 
   if (!itemList || itemList.length === 0) return null;
 
@@ -120,17 +168,17 @@ export const RecentlyAdded: React.FC<RecentlyAddedProps> = ({
             ))}
           </View>
 
-          {/* Infinite Scroll Footer Controls */}
+          {/* Automatic Infinite Scroll Loading Indicator */}
           <View style={styles.loadMoreBox}>
             {loadingMore ? (
               <View style={styles.loadingMoreInner}>
                 <ActivityIndicator size="small" color="#e50914" />
-                <Text style={styles.loadingMoreText}>Fetching more recently added releases...</Text>
+                <Text style={styles.loadingMoreText}>Auto-loading recently added releases (Page {page + 1})...</Text>
               </View>
             ) : hasMore ? (
               <TouchableOpacity onPress={loadNextPage} style={styles.loadMoreBtn} activeOpacity={0.8}>
-                <Ionicons name="arrow-down-circle-outline" size={16} color="#ffffff" />
-                <Text style={styles.loadMoreBtnText}>Load More Releases (Page {page + 1})</Text>
+                <Ionicons name="sparkles" size={14} color="#e50914" />
+                <Text style={styles.loadMoreBtnText}>Auto-Loading Feed • {itemList.length} Titles (Page {page})</Text>
               </TouchableOpacity>
             ) : (
               <Text style={styles.endText}>You have viewed all recently added releases.</Text>
@@ -216,7 +264,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   loadMoreBox: {
-    paddingVertical: 20,
+    paddingVertical: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -234,17 +282,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     paddingHorizontal: 22,
-    paddingVertical: 11,
+    paddingVertical: 10,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.14)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   loadMoreBtnText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '700',
+    color: '#9ca3af',
+    fontSize: 12,
+    fontWeight: '600',
   },
   endText: {
     color: '#6b7280',
