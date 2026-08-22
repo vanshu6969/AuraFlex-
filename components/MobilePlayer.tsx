@@ -69,7 +69,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
   const isAnime = isAnimeMedia(media);
   const isSeries = media.media_type === 'tv' || (media.media_type === 'anime' && (media.episodes_count || 0) > 1);
 
-  const [activeServerId, setActiveServerId] = useState(() => 'vidsrc_icu');
+  const [activeServerId, setActiveServerId] = useState(() => 'videasy');
   const [customOverride, setCustomOverride] = useState<StreamOverrideRecord | null>(null);
   const hasOverride = !!customOverride;
   const [streamtapeMp4Url, setStreamtapeMp4Url] = useState<string | null>(null);
@@ -271,7 +271,7 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
         } else if (isAnime) {
           setActiveServerId('anime');
         } else {
-          setActiveServerId('vidsrc_icu');
+          setActiveServerId('videasy');
         }
       } catch (e) {}
     };

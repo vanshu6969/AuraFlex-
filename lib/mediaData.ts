@@ -96,54 +96,9 @@ const SUB_FLAGS = 'sub=en&sub_lang=en&ds_lang=en&subtitles=1&cc_load_policy=1&au
 
 export const EMBED_SERVERS: EmbedServer[] = [
   {
-    id: 'vidsrc_icu',
-    name: 'VidSrc HD',
-    badge: 'Primary 1080p HD',
-    getUrl: (type, id, season = 1, episode = 1) =>
-      type === 'tv' || type === 'anime'
-        ? `https://vidsrc.icu/embed/tv/${id}/${season}/${episode}`
-        : `https://vidsrc.icu/embed/movie/${id}`,
-  },
-  {
-    id: 'vidlink',
-    name: 'VidLink',
-    badge: 'Ultra Fast Mirror',
-    getUrl: (type, id, season = 1, episode = 1) =>
-      type === 'tv' || type === 'anime'
-        ? `https://vidlink.pro/tv/${id}/${season}/${episode}`
-        : `https://vidlink.pro/movie/${id}`,
-  },
-  {
-    id: 'vidsrc_cc',
-    name: 'VidSrc V2',
-    badge: 'Fast HD Mirror',
-    getUrl: (type, id, season = 1, episode = 1) =>
-      type === 'tv' || type === 'anime'
-        ? `https://vidsrc.cc/v2/embed/tv/${id}/${season}/${episode}`
-        : `https://vidsrc.cc/v2/embed/movie/${id}`,
-  },
-  {
-    id: 'autoembed',
-    name: 'AutoEmbed',
-    badge: 'Multi-Language HD',
-    getUrl: (type, id, season = 1, episode = 1) =>
-      type === 'tv' || type === 'anime'
-        ? `https://player.autoembed.cc/embed/tv/${id}/${season}/${episode}`
-        : `https://player.autoembed.cc/embed/movie/${id}`,
-  },
-  {
-    id: 'embed_su',
-    name: 'Embed.su',
-    badge: 'High-Bitrate Mirror',
-    getUrl: (type, id, season = 1, episode = 1) =>
-      type === 'tv' || type === 'anime'
-        ? `https://embed.su/embed/tv/${id}/${season}/${episode}`
-        : `https://embed.su/embed/movie/${id}`,
-  },
-  {
     id: 'videasy',
-    name: 'Videasy HD',
-    badge: 'Backup HD Server',
+    name: 'HD',
+    badge: 'HD Server',
     getUrl: (type, id, season = 1, episode = 1) =>
       type === 'tv' || type === 'anime'
         ? `https://player.videasy.net/tv/${id}/${season}/${episode}?${SUB_FLAGS}`
@@ -173,8 +128,8 @@ export const EMBED_SERVERS: EmbedServer[] = [
     badge: 'Anime Server (HD)',
     getUrl: (type, id, season = 1, episode = 1) =>
       type === 'movie'
-        ? `https://vidsrc.icu/embed/movie/${id}`
-        : `https://vidsrc.icu/embed/tv/${id}/${season}/${episode}`,
+        ? `https://player.videasy.net/movie/${id}?${SUB_FLAGS}`
+        : `https://player.videasy.net/tv/${id}/${season}/${episode}?${SUB_FLAGS}`,
   },
   {
     id: 'nontongo',

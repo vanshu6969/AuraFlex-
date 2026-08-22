@@ -19,54 +19,9 @@ const SUB_FLAGS = 'sub=en&sub_lang=en&ds_lang=en&subtitles=1&cc_load_policy=1&au
 
 export const SERVERS: ServerOption[] = [
   {
-    id: 'vidsrc_icu',
-    name: 'VidSrc HD',
-    badge: 'Server 1 (Primary 1080p)',
-    getUrl: (type, id, season = 1, episode = 1) =>
-      type === 'tv' || type === 'anime'
-        ? `https://vidsrc.icu/embed/tv/${id}/${season}/${episode}`
-        : `https://vidsrc.icu/embed/movie/${id}`,
-  },
-  {
-    id: 'vidlink',
-    name: 'VidLink',
-    badge: 'Server 2 (Ultra Fast)',
-    getUrl: (type, id, season = 1, episode = 1) =>
-      type === 'tv' || type === 'anime'
-        ? `https://vidlink.pro/tv/${id}/${season}/${episode}`
-        : `https://vidlink.pro/movie/${id}`,
-  },
-  {
-    id: 'vidsrc_cc',
-    name: 'VidSrc V2',
-    badge: 'Server 3 (Fast Mirror)',
-    getUrl: (type, id, season = 1, episode = 1) =>
-      type === 'tv' || type === 'anime'
-        ? `https://vidsrc.cc/v2/embed/tv/${id}/${season}/${episode}`
-        : `https://vidsrc.cc/v2/embed/movie/${id}`,
-  },
-  {
-    id: 'autoembed',
-    name: 'AutoEmbed',
-    badge: 'Server 4 (Multi-Lang)',
-    getUrl: (type, id, season = 1, episode = 1) =>
-      type === 'tv' || type === 'anime'
-        ? `https://player.autoembed.cc/embed/tv/${id}/${season}/${episode}`
-        : `https://player.autoembed.cc/embed/movie/${id}`,
-  },
-  {
-    id: 'embed_su',
-    name: 'Embed.su',
-    badge: 'Server 5 (High Bitrate)',
-    getUrl: (type, id, season = 1, episode = 1) =>
-      type === 'tv' || type === 'anime'
-        ? `https://embed.su/embed/tv/${id}/${season}/${episode}`
-        : `https://embed.su/embed/movie/${id}`,
-  },
-  {
     id: 'videasy',
-    name: 'Videasy HD',
-    badge: 'Backup HD Server',
+    name: 'HD',
+    badge: 'Server 1 (Primary HD)',
     getUrl: (type, id, season = 1, episode = 1) =>
       type === 'tv' || type === 'anime'
         ? `https://player.videasy.net/tv/${id}/${season}/${episode}?${SUB_FLAGS}`
@@ -75,7 +30,7 @@ export const SERVERS: ServerOption[] = [
   {
     id: 'embedmaster',
     name: 'English',
-    badge: 'English Server',
+    badge: 'Server 2 (Fast Mirror)',
     getUrl: (type, id, season = 1, episode = 1) =>
       type === 'tv' || type === 'anime'
         ? `https://embedmaster.link/tv/${id}/${season}/${episode}?${SUB_FLAGS}`
@@ -84,7 +39,7 @@ export const SERVERS: ServerOption[] = [
   {
     id: 'flmu',
     name: 'Indian',
-    badge: 'Indian Server',
+    badge: 'Server 3 (Multi-Audio)',
     getUrl: (type, id, season = 1, episode = 1) =>
       type === 'tv' || type === 'anime'
         ? `https://embed.filmu.in/tv/${id}/${season}/${episode}?${SUB_FLAGS}`
@@ -96,8 +51,8 @@ export const SERVERS: ServerOption[] = [
     badge: 'Anime Server',
     getUrl: (type, id, season = 1, episode = 1, anilistId?: number | null) =>
       anilistId
-        ? `https://vidsrc.icu/embed/anime/${anilistId}/${episode}`
-        : `https://vidsrc.icu/embed/tv/${id}/${season}/${episode}`,
+        ? `https://embed.filmu.in/anime/${anilistId}/${episode}?${SUB_FLAGS}`
+        : `https://embed.filmu.in/tv/${id}/${season}/${episode}?${SUB_FLAGS}`,
   },
   {
     id: 'nontongo',
