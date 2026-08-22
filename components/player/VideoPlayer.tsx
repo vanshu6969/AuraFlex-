@@ -116,15 +116,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     : SERVERS.filter((s) => s.id !== 'nontongo' && s.id !== 'anime' && s.id !== 'kisskh');
 
   const [activeServerIndex, setActiveServerIndex] = useState(() => {
+    if (isKdrama) {
+      const nontongoIdx = SERVERS.findIndex((s) => s.id === 'nontongo');
+      if (nontongoIdx !== -1) return nontongoIdx;
+    }
     if (isPunjabi) {
       const idx = SERVERS.findIndex((s) => s.id === 'flmu');
       if (idx !== -1) return idx;
-    }
-    if (isKdrama) {
-      const idx = SERVERS.findIndex((s) => s.id === 'kisskh');
-      if (idx !== -1 && kisskhEmbedUrl) return idx;
-      const nontongoIdx = SERVERS.findIndex((s) => s.id === 'nontongo');
-      if (nontongoIdx !== -1) return nontongoIdx;
     }
     if (isAnime) {
       const idx = SERVERS.findIndex((s) => s.id === 'anime');
