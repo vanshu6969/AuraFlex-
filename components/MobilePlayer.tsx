@@ -171,11 +171,11 @@ export const MobilePlayer: React.FC<MobilePlayerProps> = ({ media, season: initi
     : null;
 
   const baseServers = isPunjabi
-    ? EMBED_SERVERS.filter((s) => s.id === 'videasy' || s.id === 'embedmaster' || s.id === 'flmu' || s.id === 'youtube')
+    ? EMBED_SERVERS.filter((s) => s.id === 'flmu')
     : isKdrama
-    ? EMBED_SERVERS.filter((s) => s.id === 'videasy' || s.id === 'nontongo' || s.id === 'youtube')
+    ? EMBED_SERVERS.filter((s) => s.id === 'nontongo')
     : isAnime
-    ? EMBED_SERVERS.filter((s) => s.id === 'anime' || s.id === 'videasy')
+    ? EMBED_SERVERS.filter((s) => s.id === 'anime')
     : EMBED_SERVERS.filter((s) => s.id !== 'nontongo' && s.id !== 'anime');
 
   const overrideServers = [youtubeServerObj, customServerObj, streamtapeServerObj].filter(Boolean) as EmbedServer[];
